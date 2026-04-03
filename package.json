@@ -1,0 +1,11 @@
+{
+  "name": "pulseboard-fusion-webgl-farm",
+  "version": "1.6.1",
+  "private": true,
+  "description": "PulseBoard Fusion zero-dependency local server build.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node smoke-test.js"
+  }
+}

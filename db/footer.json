@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "name": "PulseBoard Footer Socials",
+    "createdAt": "2026-04-01T00:00:00.000Z",
+    "description": "Permanent footer social media links for PulseBoard Fusion."
+  },
+  "socials": [
+    {
+      "id": "linkedin",
+      "name": "LinkedIn",
+      "icon": "in",
+      "href": "https://www.linkedin.com/in/roberto-laksmana-4403631b5/"
+    },
+    {
+      "id": "hashnode",
+      "name": "Hashnode",
+      "icon": "#",
+      "href": "https://hashnode.com/@robertolaksmana"
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "icon": "GH",
+      "href": "https://github.com/yirassssindaba-coder"
+    },
+    {
+      "id": "stackoverflow",
+      "name": "Stack Overflow",
+      "icon": "SO",
+      "href": "http://stackoverflow.com/users/32567239/roberto-ocaviantyo-tahta-laksm"
+    },
+    {
+      "id": "kaggle",
+      "name": "Kaggle",
+      "icon": "K",
+      "href": "https://www.kaggle.com/robertolaksmana"
+    },
+    {
+      "id": "x",
+      "name": "X",
+      "icon": "X",
+      "href": "https://x.com/yirasss40218"
+    },
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "icon": "▶",
+      "href": "https://www.youtube.com/@demon_child2026"
+    }
+  ]
+}

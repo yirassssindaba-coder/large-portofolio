@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseBoard Fusion</title>
+  <meta name="description" content="Redesign PulseBoard Strae Fusion dengan gaya sinematik modern untuk tanaman, binatang, teknologi, dan portofolio, memakai embed YouTube acak." />
+  <meta name="theme-color" content="#081015" />
+  <link rel="icon" type="image/svg+xml" href="assets/pulseboard-mark.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/vendor/three/build/three.module.js",
+      "three/addons/": "/vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body class="theme-home" data-page="home">
+  <div class="noise" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="cursor" aria-hidden="true"></div>
+  <div class="cursor-ring" aria-hidden="true"></div>
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader__veil" aria-hidden="true"></div>
+    <div class="loader__inner">
+      <div class="loader__label">PulseBoard Fusion</div>
+      <div class="loader__subtitle">Minimal loading transition inspired by the dark, cinematic presentation feel of Apeiron.</div>
+      <div class="loader__bar"><span id="loaderBar"></span></div>
+      <div class="loader__count" id="loaderCount">000</div>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <a class="brand magnetic" href="index.html"><span>PulseBoard</span><span>Fusion</span></a>
+    <nav class="nav"><a href="index.html" class="is-active">Home</a><a href="world.html" class="">World Atlas</a><a href="tanaman.html" class="">Green Atlas</a><a href="binatang.html" class="">Wild Echo</a><a href="teknologi.html" class="">Tech Forge</a><a href="news.html" class="">News Desk</a><a href="commerce.html" class="">E-Commerce</a><a href="azka.html" class="">Azka Garden</a><a href="portfolio.html" class="">Studio Deck</a><a href="game.html" class="">Farm World</a></nav>
+    <div class="header-tools">
+      <button class="chip magnetic" type="button" data-dev-edit-button>Developer Edit</button>
+      <a class="chip magnetic" href="posts.html">Post Studio</a>
+      <button class="chip magnetic" type="button" id="motionFlowButton">Motion Flow</button>
+      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span></button>
+    </div>
+  </header>
+  <aside class="mobile-menu" id="mobileMenu" aria-hidden="true"><a href="index.html" class="is-active">Home</a><a href="world.html" class="">World Atlas</a><a href="tanaman.html" class="">Green Atlas</a><a href="binatang.html" class="">Wild Echo</a><a href="teknologi.html" class="">Tech Forge</a><a href="news.html" class="">News Desk</a><a href="commerce.html" class="">E-Commerce</a><a href="azka.html" class="">Azka Garden</a><a href="portfolio.html" class="">Studio Deck</a><a href="game.html" class="">Farm World</a></aside>
+
+  <main>
+    <section class="hero shell">
+      <div class="hero__top reveal">
+        <span class="eyebrow" data-site-label></span>
+        <span>Plants · Animals · Technology · Portfolio · Game</span>
+      </div>
+      <div class="hero__grid">
+        <div class="hero__copy reveal">
+          <div class="eyebrow">PulseBoard Strae Fusion</div>
+          <p class="hero__summary" data-profile-summary>A.Md.Kom graduate in Informatics Management with certifications and a solid foundation in IT, data, and digital operations. Supported by academic preparation and continuous skills development, I am ready to contribute professionally, learn quickly, and grow in technology-driven environments.</p>
+          <h1 data-site-title></h1>
+          <p data-site-kicker></p>
+          <p data-site-body></p>
+          <div class="hero-actions">
+            <a class="button magnetic" data-cta-primary href="#"></a>
+            <a class="ghost-button magnetic" data-cta-secondary href="#"></a>
+          </div>
+          <div class="stats-grid" data-stats></div>
+        </div>
+        <div class="hero__visual reveal delay-1">
+          <div class="hero-art"></div>
+          <div class="hero-layers" data-visual-cards></div>
+        </div>
+      </div>
+      <div class="signal-strip reveal delay-2"><div class="signal-track" data-signal-track></div></div>
+    </section>
+
+
+
+    <section class="section shell home-library" id="library">
+      <div class="section-head reveal">
+        <div>
+          <div class="eyebrow">Section Book</div>
+          <h2>Pulse Library.</h2>
+        </div>
+        <p>Rak utama berisi atlas negara, fokus tanaman, binatang, teknologi, blueprint farm, dan kompendium lengkap dalam bentuk buku 3D yang dapat dibuka, ditutup, dan dibalik halamannya secara mulus.</p>
+      </div>
+      <div class="library-grid">
+        <div class="library-topline reveal">
+          <div class="library-copy panel">
+            <div class="eyebrow">Interactive archive</div>
+            <h3>Buku 3D untuk membuka seluruh PDF utama.</h3>
+            <p>Setiap lembar mewakili dokumen penting: atlas dunia, kompendium binatang, kompendium tanaman, kompendium teknologi, master kompendium tanaman bergambar, dan blueprint dashboard + farm world.</p>
+            <div class="library-actions">
+              <button class="button magnetic" type="button" data-book-open>Open Book</button>
+              <button class="ghost-button magnetic" type="button" data-book-next>Next Page</button>
+              <button class="ghost-button magnetic" type="button" data-book-prev>Previous Page</button>
+            </div>
+            <div class="meta-line">Swipe kiri/kanan pada buku juga didukung untuk sentuhan.</div>
+          </div>
+          <div class="library-meta-panel panel" data-library-meta-host></div>
+        </div>
+        <div class="library-stage reveal delay-1" data-library-book></div>
+      </div>
+      <div class="pdf-viewer" id="pdfViewer" aria-hidden="true">
+        <div class="pdf-viewer__backdrop" data-pdf-close></div>
+        <div class="pdf-viewer__dialog">
+          <div class="pdf-viewer__head">
+            <div>
+              <div class="eyebrow">PDF Viewer</div>
+              <h3 id="pdfViewerTitle">Dokumen</h3>
+            </div>
+            <div class="pdf-viewer__actions">
+              <a class="ghost-button magnetic" id="pdfViewerDownload" href="#" download="dokumen.pdf">Unduh PDF</a>
+              <button class="ghost-button magnetic" type="button" data-pdf-close>Close</button>
+            </div>
+          </div>
+          <iframe id="pdfViewerFrame" title="PDF Viewer" loading="lazy"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell world-pulse" id="worldPulse">
+      <div class="section-head reveal">
+        <div>
+          <div class="eyebrow">Section World</div>
+          <h2>World Atlas Live.</h2>
+        </div>
+        <p>Globe 3D lokal dengan daftar negara berbasis bendera, jam lokal, cuaca aktif, dan musim yang diinferensikan dari letak belahan bumi. Klik negara pada list atau marker untuk memusatkan kamera.</p>
+      </div>
+      <div class="world-pulse__tools reveal">
+        <input class="world-search" type="search" placeholder="Cari negara, ibu kota, atau kode..." data-world-search />
+        <button class="ghost-button magnetic" type="button" data-world-search-button>Cari</button>
+        <a class="ghost-button magnetic" href="world.html">Open full atlas</a>
+        <div class="meta-line" data-world-status>Menyiapkan atlas dunia…</div>
+      </div>
+      <div class="world-pulse__grid world-pulse__grid--globeonly reveal delay-1 world-explorer" data-mode="preview" data-default-country="Indonesia" data-layout="globe-only">
+        <div class="world-card world-card--atlas-only">
+          <canvas class="world-canvas" data-world-canvas aria-label="3D world explorer"></canvas>
+          <div class="world-overlay world-overlay--top">
+            <div class="world-results world-results--floating" data-world-list></div>
+          </div>
+          <div class="world-overlay world-overlay--info">
+            <div class="world-selected world-selected--overlay" data-world-selected></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell">
+      <div class="section-head reveal">
+        <div>
+          <div class="eyebrow">Section A</div>
+          <h2 data-feature-title></h2>
+        </div>
+        <p data-feature-text></p>
+      </div>
+      <div class="feature-grid" data-feature-grid></div>
+    </section>
+
+    <section class="section shell">
+      <div class="panel reveal">
+        <div class="eyebrow">Section B</div>
+        <h2 data-rail-title></h2>
+        <p data-rail-text></p>
+      </div>
+      <div class="rail-grid" data-rail-grid style="margin-top:18px"></div>
+    </section>
+
+    <section class="section shell" id="media">
+      <div class="section-head reveal">
+        <div>
+          <div class="eyebrow">Section C</div>
+          <h2 data-media-title>Randomized YouTube Stories.</h2>
+        </div>
+        <p data-media-text></p>
+      </div>
+      <div class="video-grid" data-video-grid></div>
+    </section>
+
+    <section class="section shell" id="videoSearchSection">
+      <div class="section-head reveal">
+        <div>
+          <div class="eyebrow">Section Search</div>
+          <h2>Search video cards.</h2>
+        </div>
+        <p>Cari kartu video berdasarkan nama yang diinginkan, lihat hasilnya langsung di halaman Home, lalu simpan jejak pencarian agar tetap membekas sampai dihapus permanen dari histori.</p>
+      </div>
+      <div class="panel reveal home-search-panel">
+        <form class="home-search-form" data-home-video-search-form>
+          <label class="home-search-label" for="homeVideoSearchInput">Nama kartu video</label>
+          <div class="home-search-row">
+            <input id="homeVideoSearchInput" class="home-search-input" type="search" placeholder="Contoh: Creative Deck, Green Atlas, Azka Garden, Future Systems" autocomplete="off" data-home-video-search-input />
+            <button class="button magnetic" type="submit">Cari kartu</button>
+            <button class="ghost-button magnetic" type="button" data-home-video-search-reset>Reset</button>
+          </div>
+          <div class="meta-line home-search-status" data-home-video-search-status>Masukkan nama kartu video untuk mulai mencari.</div>
+        </form>
+        <div class="home-search-history-block">
+          <div class="home-search-history-head">
+            <div>
+              <div class="eyebrow">Search history</div>
+              <h3>Riwayat pencarian permanen.</h3>
+            </div>
+            <button class="ghost-button magnetic" type="button" data-home-video-search-clear>Hapus semua histori</button>
+          </div>
+          <div class="home-search-history" data-home-video-search-history></div>
+        </div>
+      </div>
+      <div class="home-search-results" data-home-video-search-results></div>
+    </section>
+
+    <section class="section shell">
+      <div class="section-head reveal">
+        <div>
+          <div class="eyebrow">Section D</div>
+          <h2>Showcase lanes.</h2>
+        </div>
+        <p>Halaman ini tetap terasa seperti satu sistem utuh: editorial, dinamis, gelap, modern, dengan interaksi halus dan panggung media yang aktif.</p>
+      </div>
+      <div class="case-grid" data-case-grid></div>
+      <div class="tool-grid" data-tool-grid style="margin-top:18px"></div>
+    </section>
+
+
+    <section class="section shell">
+      <div class="section-head reveal">
+        <div>
+          <div class="eyebrow">Section E</div>
+          <h2>Pulse Stories.</h2>
+        </div>
+        <p>Feed postingan published dari Post Studio untuk ringkasan update proyek, rollout katalog, dan catatan developer.</p>
+      </div>
+      <div class="case-grid story-wall" data-post-feed></div>
+    </section>
+
+    <section class="section shell">
+      <div class="footer-box reveal">
+        <div class="footer-grid">
+          <div>
+            <div class="eyebrow">Exit block</div>
+            <h3>One redesign, many moods.</h3>
+            <p>Proyek terlampir sekarang dirapikan menjadi sistem visual yang lebih matang: satu portal utama dan empat halaman fokus yang saling nyambung.</p>
+            <div class="hero-actions">
+              <a class="button magnetic" href="index.html">Main Portal</a>
+              <a class="ghost-button magnetic" href="game.html">Open Farm World</a>
+            </div>
+          </div>
+          <div>
+            <div class="eyebrow">Active layers</div>
+            <p>Loader aman, progress bar, custom cursor, reveal animation, tilt interaction, magnetic hover, embedded YouTube media, dan responsive multi-page layout.</p>
+            <div class="meta-line">No build step · Run locally · Reload changes the video rail</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+  <script type="module" src="world-explorer.js"></script>
+  <script src="home-book.js"></script>
+  <script src="posts-public.js"></script>
+  <script src="shared-shell.js"></script>
+  <script src="site-i18n.js"></script>
+</body>
+</html>

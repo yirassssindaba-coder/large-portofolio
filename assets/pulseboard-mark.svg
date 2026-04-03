@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="PulseBoard mark">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f5e6c8"/>
+      <stop offset="100%" stop-color="#c98b47"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#0d0c0a"/>
+  <circle cx="64" cy="64" r="44" fill="none" stroke="url(#g)" stroke-width="10" opacity="0.9"/>
+  <path d="M42 84V44h24c14 0 22 7 22 19 0 12-8 21-23 21H54v0H42zm12-11h10c8 0 12-4 12-10s-4-9-11-9H54v19z" fill="#f7f1e6"/>
+</svg>

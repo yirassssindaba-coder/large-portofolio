@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseBoard Post Studio</title>
+  <meta name="theme-color" content="#081015" />
+  <link rel="icon" type="image/svg+xml" href="assets/pulseboard-mark.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="theme-home" data-page="posts-studio">
+  <div class="noise" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand magnetic" href="index.html"><span>PulseBoard</span><span>Fusion</span></a>
+    <nav class="nav"><a href="index.html" class="">Home</a><a href="world.html" class="">World Atlas</a><a href="tanaman.html" class="">Green Atlas</a><a href="binatang.html" class="">Wild Echo</a><a href="teknologi.html" class="">Tech Forge</a><a href="news.html" class="">News Desk</a><a href="commerce.html" class="">E-Commerce</a><a href="azka.html" class="">Azka Garden</a><a href="portfolio.html" class="">Studio Deck</a><a href="game.html" class="">Farm World</a></nav>
+    <div class="header-tools">
+      <span class="chip" id="postsModePill">Preview publik</span>
+      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span></button>
+    </div>
+  </header>
+  <aside class="mobile-menu" id="mobileMenu" aria-hidden="true"><a href="index.html" class="">Home</a><a href="world.html" class="">World Atlas</a><a href="tanaman.html" class="">Green Atlas</a><a href="binatang.html" class="">Wild Echo</a><a href="teknologi.html" class="">Tech Forge</a><a href="news.html" class="">News Desk</a><a href="commerce.html" class="">E-Commerce</a><a href="azka.html" class="">Azka Garden</a><a href="portfolio.html" class="">Studio Deck</a><a href="game.html" class="">Farm World</a></aside>
+
+  <main class="shell post-studio">
+
+    <section class="studio-deck-hero reveal">
+      <div class="sdh-left">
+        <div class="eyebrow">Post Studio — Command Center Editorial</div>
+        <h1 class="sdh-headline">kini tampil<br>seperti<br><em>command<br>center<br>editorial</em></h1>
+        <p class="sdh-intro">Intro atas dipakai sebagai area orientasi cepat: workflow, shortcut, status editor, ringkasan publish, dan jalur turun ke analytics, tabel belajar, history, flat, editor, sampai activity log.</p>
+        <div class="sdh-actions">
+          <button class="button magnetic" id="newPostButton">Lihat Postingan</button>
+          <button class="ghost-button magnetic" id="refreshPostsButton">Buka Editor</button>
+          <button class="ghost-button magnetic" id="exportPostsButton">Export JSON</button>
+        </div>
+        <div class="sdh-pills">
+          <a class="pill" href="#postList">Daftar post</a>
+          <a class="pill" href="#analyticsOverview">Analytics studio</a>
+          <a class="pill" href="#studyLabRoot">Learning tables</a>
+          <a class="pill" href="#postHistoryTimeline">History website</a>
+          <a class="pill" href="#postForm">Editor cepat</a>
+          <a class="pill" href="#activityList">Audit log</a>
+        </div>
+      </div>
+
+      <div class="sdh-right">
+        <div class="sdh-panel">
+          <div class="sdh-panel-label">NAVIGATOR STUDIO</div>
+          <p class="sdh-panel-desc">Semua area penting langsung tersedia tanpa harus loading.</p>
+          <div class="sdh-nav-grid">
+            <a class="sdh-nav-btn" href="#analyticsOverview">Analytics</a>
+            <a class="sdh-nav-btn" href="#studyLabRoot">Learning tables</a>
+            <a class="sdh-nav-btn" href="#postHistoryTimeline">History</a>
+            <a class="sdh-nav-btn" href="#postList">Post list</a>
+            <a class="sdh-nav-btn" href="#postForm">Editor</a>
+            <a class="sdh-nav-btn" href="#activityList">Activity</a>
+          </div>
+        </div>
+
+        <div class="sdh-panel">
+          <div class="sdh-panel-label">WORKFLOW INTI</div>
+          <div class="sdh-workflow-row">
+            <span class="sdh-wf-step active">01 Draft</span>
+            <span class="sdh-wf-step">02 Review</span>
+            <span class="sdh-wf-step">03 Publish</span>
+            <span class="sdh-wf-step">04 Analytics</span>
+            <span class="sdh-wf-step">05 Import</span>
+            <span class="sdh-wf-step">06 Audit</span>
+          </div>
+        </div>
+
+        <div class="sdh-panel">
+          <div class="sdh-panel-label">STUDIO MODE</div>
+          <div class="sdh-mode-row">
+            <button class="sdh-mode-btn primary" id="sdPreviewBtn">Preview publik aktif</button>
+            <button class="sdh-mode-btn" id="sdCrudBtn">CRUD siap unlock</button>
+          </div>
+          <p class="sdh-mode-desc">Hero sites, command-panel, analytics, tabel belajar, history website, editor, dan audit log semuanya menjadi satu perjalanan yang lebih penuh dan menyatu sampai footer.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="studio-video-deck reveal">
+      <div class="svd-header">
+        <div class="eyebrow">Studio Deck — Paragraf dalam Format Video</div>
+        <h2>Konten studio kini tampil dalam deck sinematik</h2>
+      </div>
+      <div class="svd-grid">
+        <article class="svd-card">
+          <div class="svd-card-badge">WORKFLOW</div>
+          <div class="svd-card-screen">
+            <div class="svd-play-icon">▶</div>
+            <p>Draft → Review → Publish berjalan dalam satu alur. Editor, status, dan audit bergerak tanpa pindah halaman sehingga produktivitas studio tetap terjaga.</p>
+          </div>
+          <div class="svd-card-meta"><span>01</span><span>Alur kerja studio</span></div>
+        </article>
+        <article class="svd-card">
+          <div class="svd-card-badge">ANALYTICS</div>
+          <div class="svd-card-screen">
+            <div class="svd-play-icon">▶</div>
+            <p>Analytics + history + export berjalan beriringan. Studio bukan hanya form CRUD — ini juga ruang baca performa, progres, dan dokumentasi proyek yang hidup.</p>
+          </div>
+          <div class="svd-card-meta"><span>02</span><span>Performa &amp; insight</span></div>
+        </article>
+        <article class="svd-card">
+          <div class="svd-card-badge">DISTRIBUSI</div>
+          <div class="svd-card-screen">
+            <div class="svd-play-icon">▶</div>
+            <p>Green Atlas hingga Studio Deck — kategori konten menjaga post tetap terhubung ke semua lane utama PulseBoard Fusion tanpa putus jalur.</p>
+          </div>
+          <div class="svd-card-meta"><span>03</span><span>Lane konten</span></div>
+        </article>
+        <article class="svd-card">
+          <div class="svd-card-badge">KONTROL</div>
+          <div class="svd-card-screen">
+            <div class="svd-play-icon">▶</div>
+            <p>Search, filter, sort, soft delete, restore, dan export tersedia dalam satu panel. Konten dapat diawasi, dibersihkan, dan dipanggil kembali kapan saja.</p>
+          </div>
+          <div class="svd-card-meta"><span>04</span><span>Quality control</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="stats-grid post-stats" id="postStats"></section>
+
+    <section class="analytics-hero reveal post-analytics-hero">
+      <div>
+        <div class="eyebrow">Power analytics in studio</div>
+        <h2>Grafik bergaya Power BI kini tampil langsung di Post Studio.</h2>
+        <p>Overview KPI, growth post, komentar, video, source trafik, device, dan audit sekarang terbaca tanpa keluar dari workflow editor sehingga studio terasa jauh lebih matang dan menyatu.</p>
+        <div class="analytics-badges">
+          <span class="analytics-badge">Overview</span>
+          <span class="analytics-badge">Visitor</span>
+          <span class="analytics-badge">Post Growth</span>
+          <span class="analytics-badge">Comments</span>
+          <span class="analytics-badge">Media</span>
+          <span class="analytics-badge">Audit</span>
+        </div>
+      </div>
+      <div class="analytics-hero__actions">
+        <a class="ghost-button magnetic analytics-report-link" href="analytics.html">Buka halaman Analytics</a>
+        <button class="button magnetic" id="refreshAnalyticsButton" type="button">Refresh Analytics</button>
+        <button class="ghost-button magnetic" id="exportAnalyticsHtml" type="button">Unduh Report HTML</button>
+        <button class="ghost-button magnetic" id="exportAnalyticsJson" type="button">Unduh JSON</button>
+        <button class="ghost-button magnetic" id="exportAnalyticsCsv" type="button">Unduh CSV</button>
+      </div>
+    </section>
+
+    <section class="analytics-kpis post-analytics-kpis" id="analyticsOverview"></section>
+
+    <section class="analytics-layout post-analytics-layout">
+      <div class="analytics-column">
+        <section class="analytics-panel reveal">
+          <div class="analytics-panel__head">
+            <div>
+              <div class="eyebrow">Studio charts</div>
+              <h2>Panel grafik inti untuk membaca performa dengan cepat</h2>
+            </div>
+            <p class="analytics-chart-note">Line, bar, dan doughnut dipakai untuk visitor, growth post, komentar, video, CTR, sumber trafik, device, dan error agar Post Studio terasa seperti command center.</p>
+          </div>
+          <div class="analytics-chart-grid" id="analyticsChartGrid"></div>
+        </section>
+
+        <section class="analytics-panel reveal">
+          <div class="analytics-panel__head">
+            <div>
+              <div class="eyebrow">Content & media</div>
+              <h3>Kondisi katalog, opening reel, dan post studio</h3>
+            </div>
+          </div>
+          <div class="analytics-mini-grid" id="analyticsMiniGrid"></div>
+          <div class="analytics-note" id="analyticsNotes"></div>
+        </section>
+      </div>
+
+      <div class="analytics-column">
+        <section class="analytics-panel reveal">
+          <div class="analytics-panel__head"><div><div class="eyebrow">Top pages</div><h3>Halaman paling ramai</h3></div></div>
+          <div class="analytics-table" id="topPagesTable"></div>
+        </section>
+        <section class="analytics-panel reveal">
+          <div class="analytics-panel__head"><div><div class="eyebrow">Traffic source</div><h3>Sumber trafik teratas</h3></div></div>
+          <div class="analytics-table" id="trafficSourcesTable"></div>
+        </section>
+        <section class="analytics-panel reveal">
+          <div class="analytics-panel__head"><div><div class="eyebrow">Top media</div><h3>Video dan item paling sering disentuh</h3></div></div>
+          <div class="analytics-table analytics-table--tight" id="topVideosTable"></div>
+        </section>
+        <section class="analytics-panel reveal">
+          <div class="analytics-panel__head"><div><div class="eyebrow">Audit log</div><h3>Aktivitas studio terbaru</h3></div></div>
+          <div class="analytics-table" id="auditTable"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel reveal study-lab" id="studyLabRoot">
+      <div class="panel-head-row panel-head-row--stacked">
+        <div>
+          <div class="eyebrow">Interactive learning tables</div>
+          <h2>Tabel warna, kimia, dan profesi yang bisa ditekan seperti permainan</h2>
+        </div>
+        <p class="post-history-lead">Grid modern-dark ini mengikuti gaya tabel warna CSS4, tabel periodik 118 unsur, dan tabel profesi IT dari dokumen referensi, lalu diubah menjadi mode belajar interaktif supaya lebih mudah dipelajari dan diingat.</p>
+      </div>
+      <div class="study-topbar">
+        <div class="study-tabs" id="studyTabs"></div>
+        <div class="study-controls">
+          <label><span>Cari item</span><input id="studySearchInput" type="search" placeholder="Cari warna, unsur, profesi, kode" /></label>
+          <label><span>Filter</span><select id="studyFilterSelect"><option value="all">Semua</option></select></label>
+          <div class="study-control-buttons">
+            <button class="button magnetic" type="button" id="studyChallengeButton">Nyalakan Tantangan</button>
+            <button class="ghost-button magnetic" type="button" id="studyShuffleButton">Acak</button>
+            <button class="ghost-button magnetic" type="button" id="studyResetProgressButton">Reset Progress</button>
+          </div>
+        </div>
+      </div>
+      <div class="study-statusbar" id="studyStatusBar"></div>
+      <div class="study-challenge" id="studyChallengePanel" data-state="idle"></div>
+      <div class="study-layout">
+        <div class="study-board">
+          <div class="study-grid" id="studyGrid"></div>
+        </div>
+        <aside class="study-side">
+          <div id="studyDetailPanel"></div>
+          <div id="studySummaryPanel" class="study-summary-stack"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="post-history-grid reveal">
+      <article class="panel post-history-panel post-history-panel--lead">
+        <div class="panel-head-row panel-head-row--stacked">
+          <div>
+            <div class="eyebrow">Sejarah website</div>
+            <h2>Perjalanan pembuatan PulseBoard Fusion</h2>
+          </div>
+          <p class="post-history-lead" id="postHistoryLead">Halaman ini sekarang juga memuat ringkasan sejarah pembuatan website, supaya area Post Studio tetap terisi, informatif, dan terasa seperti ruang dokumentasi yang hidup.</p>
+        </div>
+        <div class="post-history-pillrow" id="postHistoryPills"></div>
+        <div class="post-history-copy" id="postHistoryCopy"></div>
+      </article>
+      <article class="panel post-history-panel">
+        <div class="panel-head-row">
+          <div>
+            <div class="eyebrow">Milestone timeline</div>
+            <h2>Urutan update publik</h2>
+          </div>
+          <div class="micro">Feed sejarah</div>
+        </div>
+        <div class="post-history-timeline" id="postHistoryTimeline"></div>
+      </article>
+    </section>
+
+    <section class="post-history-grid post-history-grid--secondary reveal delay-1">
+      <article class="panel post-history-panel">
+        <div class="panel-head-row">
+          <div>
+            <div class="eyebrow">Lapisan produk</div>
+            <h2>Struktur besar website</h2>
+          </div>
+          <div class="micro">Lane + systems</div>
+        </div>
+        <div class="post-history-lanes" id="postHistoryLanes"></div>
+      </article>
+      <article class="panel post-history-panel">
+        <div class="panel-head-row">
+          <div>
+            <div class="eyebrow">Catatan studio</div>
+            <h2>Mengapa halaman ini diisi sejarah</h2>
+          </div>
+          <div class="micro">Context</div>
+        </div>
+        <div class="post-history-notes" id="postHistoryNotes"></div>
+      </article>
+    </section>
+
+
+    <section class="post-toolbar reveal">
+      <label><span>Search</span><input id="postSearchInput" type="search" placeholder="Cari judul, slug, tag, author" /></label>
+      <label><span>Status</span><select id="postStatusFilter"><option value="">Semua</option><option value="draft">Draft</option><option value="review">Review</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
+      <label><span>Kategori</span><select id="postCategoryFilter"><option value="">Semua</option><option value="tanaman">Tanaman</option><option value="hewan">Hewan</option><option value="teknologi">Teknologi</option><option value="portfolio">Portfolio</option><option value="umum">Umum</option></select></label>
+      <label><span>Sort</span><select id="postSortSelect"><option value="updated_desc">Terbaru diupdate</option><option value="created_desc">Terbaru dibuat</option><option value="title_asc">Judul A-Z</option><option value="status_asc">Status</option></select></label>
+      <label class="post-checkbox"><input id="includeDeletedFilter" type="checkbox" /> Tampilkan soft delete</label>
+    </section>
+
+    <section class="post-layout">
+      <div class="post-list-panel panel reveal">
+        <div class="panel-head-row">
+          <div>
+            <div class="eyebrow">Read list</div>
+            <h2>Daftar postingan</h2>
+          </div>
+          <div class="micro" id="postListMeta">0 item</div>
+        </div>
+        <div class="post-list" id="postList"></div>
+        <div class="pager" id="postPager"></div>
+      </div>
+      <aside class="post-editor-panel panel reveal delay-1">
+        <div class="panel-head-row">
+          <div>
+            <div class="eyebrow">Create / Update</div>
+            <h2 id="editorTitle">Tambah postingan</h2>
+          </div>
+          <span class="chip" id="editorModeChip">Create</span>
+        </div>
+        <form id="postForm" class="post-form">
+          <input type="hidden" id="postId" />
+          <label><span>Judul</span><input id="postTitle" type="text" required maxlength="120" /></label>
+          <label><span>Slug</span><input id="postSlug" type="text" maxlength="120" placeholder="otomatis dari judul" /></label>
+          <label><span>Excerpt</span><textarea id="postExcerpt" rows="3" required maxlength="220"></textarea></label>
+          <label><span>Konten</span><textarea id="postContent" rows="8" required></textarea></label>
+          <div class="post-form-grid">
+            <label><span>Kategori</span><select id="postCategory" required><option value="tanaman">Tanaman</option><option value="hewan">Hewan</option><option value="teknologi">Teknologi</option><option value="portfolio">Portfolio</option><option value="umum">Umum</option></select></label>
+            <label><span>Status</span><select id="postStatus" required><option value="draft">Draft</option><option value="review">Review</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
+            <label><span>Author</span><input id="postAuthor" type="text" maxlength="60" value="Developer" /></label>
+            <label><span>Cover URL</span><input id="postCover" type="url" placeholder="https://..." /></label>
+          </div>
+          <label><span>Tags</span><input id="postTags" type="text" placeholder="green atlas, tanaman, pulseboard" /></label>
+          <label class="post-checkbox"><input id="postFeatured" type="checkbox" /> Jadikan featured</label>
+          <div class="post-form-actions">
+            <button class="button" type="submit" id="savePostButton">Simpan Postingan</button>
+            <button class="ghost-button" type="button" id="resetPostButton">Reset</button>
+            <button class="ghost-button" type="button" id="archivePostButton">Archive</button>
+            <button class="ghost-button" type="button" id="softDeletePostButton">Soft Delete</button>
+            <button class="ghost-button" type="button" id="restorePostButton">Restore</button>
+          </div>
+        </form>
+        <div class="post-note" id="postMessage"></div>
+      </aside>
+    </section>
+
+    <section class="post-audit panel reveal">
+      <div class="panel-head-row">
+        <div>
+          <div class="eyebrow">Audit / Activity</div>
+          <h2>Log aktivitas terbaru</h2>
+        </div>
+        <div class="micro">Activity log</div>
+      </div>
+      <div class="activity-list" id="activityList"></div>
+    </section>
+  </main>
+
+  <script src="shared-shell.js"></script>
+  <script src="posts.js"></script>
+  <script src="posts-learning.js"></script>
+  <script src="posts-analytics.js"></script>
+  <script src="site-i18n.js"></script>
+</body>
+</html>

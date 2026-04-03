@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseBoard Analytics Studio</title>
+  <meta name="theme-color" content="#081015" />
+  <link rel="icon" type="image/svg+xml" href="assets/pulseboard-mark.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="theme-home" data-page="analytics">
+  <div class="noise" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand magnetic" href="index.html"><span>PulseBoard</span><span>Fusion</span></a>
+    <nav class="nav">
+      <a href="index.html">Home</a><a href="world.html">World Atlas</a><a href="tanaman.html">Green Atlas</a><a href="binatang.html">Wild Echo</a><a href="teknologi.html">Tech Forge</a><a href="news.html">News Desk</a><a href="commerce.html">E-Commerce</a><a href="azka.html">Azka Garden</a><a href="portfolio.html">Studio Deck</a><a href="analytics.html" class="is-active">Analytics</a><a href="game.html">Farm World</a>
+    </nav>
+    <div class="header-tools">
+      <a class="chip magnetic" href="manager.html">Developer Edit</a>
+      <a class="chip magnetic" href="posts.html">Post Studio</a>
+      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span></button>
+    </div>
+  </header>
+  <aside class="mobile-menu" id="mobileMenu" aria-hidden="true"><a href="index.html">Home</a><a href="world.html">World Atlas</a><a href="tanaman.html">Green Atlas</a><a href="binatang.html">Wild Echo</a><a href="teknologi.html">Tech Forge</a><a href="news.html">News Desk</a><a href="commerce.html">E-Commerce</a><a href="azka.html">Azka Garden</a><a href="portfolio.html">Studio Deck</a><a href="analytics.html" class="is-active">Analytics</a><a href="game.html">Farm World</a></aside>
+
+  <main class="shell analytics-main">
+    <section class="analytics-hero reveal in-view">
+      <div>
+        <div class="eyebrow">Analytics studio</div>
+        <h1>Grafik visitor, konten, komentar, media, dan audit ditampilkan dalam satu studio yang lebih profesional.</h1>
+        <p>Dashboard ini mengikuti rancangan analytics yang kamu susun: overview KPI, audience, content growth, engagement, comments, media, technical signals, dan audit log. Hasilnya juga bisa diunduh sebagai JSON, CSV, atau laporan HTML.</p>
+        <div class="analytics-badges">
+          <span class="analytics-badge">Overview</span>
+          <span class="analytics-badge">Content Growth</span>
+          <span class="analytics-badge">Engagement</span>
+          <span class="analytics-badge">Comments</span>
+          <span class="analytics-badge">Media</span>
+          <span class="analytics-badge">Audit</span>
+        </div>
+      </div>
+      <div class="analytics-hero__actions">
+        <button class="button magnetic" id="refreshAnalyticsButton" type="button">Refresh Analytics</button>
+        <button class="ghost-button magnetic" id="exportAnalyticsHtml" type="button">Unduh Report HTML</button>
+        <button class="ghost-button magnetic" id="exportAnalyticsJson" type="button">Unduh JSON</button>
+        <button class="ghost-button magnetic" id="exportAnalyticsCsv" type="button">Unduh CSV</button>
+      </div>
+    </section>
+
+    <section class="analytics-kpis" id="analyticsOverview"></section>
+
+    <section class="analytics-layout">
+      <div class="analytics-column">
+        <section class="analytics-panel reveal in-view">
+          <div class="analytics-panel__head">
+            <div>
+              <div class="eyebrow">Overview charts</div>
+              <h2>Grafik inti sesuai rancangan studio</h2>
+            </div>
+            <p class="analytics-chart-note">Line, bar, dan doughnut dipakai untuk memetakan traffic, growth post, komentar, video, CTR, sumber trafik, device, dan error.</p>
+          </div>
+          <div class="analytics-chart-grid" id="analyticsChartGrid"></div>
+        </section>
+
+        <section class="analytics-panel reveal in-view">
+          <div class="analytics-panel__head">
+            <div>
+              <div class="eyebrow">Content & media</div>
+              <h3>Kondisi katalog, opening reel, dan post studio</h3>
+            </div>
+          </div>
+          <div class="analytics-mini-grid" id="analyticsMiniGrid"></div>
+          <div class="analytics-note" id="analyticsNotes"></div>
+        </section>
+      </div>
+
+      <div class="analytics-column">
+        <section class="analytics-panel reveal in-view">
+          <div class="analytics-panel__head"><div><div class="eyebrow">Top pages</div><h3>Halaman paling ramai</h3></div></div>
+          <div class="analytics-table" id="topPagesTable"></div>
+        </section>
+        <section class="analytics-panel reveal in-view">
+          <div class="analytics-panel__head"><div><div class="eyebrow">Traffic source</div><h3>Sumber trafik teratas</h3></div></div>
+          <div class="analytics-table" id="trafficSourcesTable"></div>
+        </section>
+        <section class="analytics-panel reveal in-view">
+          <div class="analytics-panel__head"><div><div class="eyebrow">Top media</div><h3>Video dan item yang paling sering disentuh</h3></div></div>
+          <div class="analytics-table analytics-table--tight" id="topVideosTable"></div>
+        </section>
+        <section class="analytics-panel reveal in-view">
+          <div class="analytics-panel__head"><div><div class="eyebrow">Audit log</div><h3>Aktivitas studio terbaru</h3></div></div>
+          <div class="analytics-table" id="auditTable"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="shared-shell.js"></script>
+  <script src="analytics.js"></script>
+  <script src="site-i18n.js"></script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+{
+  "meta": {
+    "name": "PulseBoard Activity",
+    "createdAt": "2026-03-30T00:00:00.000Z"
+  },
+  "events": [
+    {
+      "id": "f4572952-5950-4138-a06b-ae20424431cf",
+      "at": "2026-03-31T08:04:44.320Z",
+      "type": "public-comment",
+      "entity": "story-comment",
+      "entityId": "52816ddd-5a20-49f8-8a08-4024cc910fc5",
+      "message": "Komentar publik baru pada website keseluruhan oleh Developer."
+    },
+    {
+      "id": "b7546a24-4652-4414-8d78-c67ea31b1784",
+      "at": "2026-03-31T08:04:44.316Z",
+      "type": "public-comment",
+      "entity": "story-comment",
+      "entityId": "1e888493-070a-43fb-a721-9b139bbaec85",
+      "message": "Komentar publik baru pada website keseluruhan oleh Tester."
+    },
+    {
+      "id": "b65fbffc-65bf-4bdf-8b22-fc20aeca257d",
+      "at": "2026-03-31T05:50:05.345Z",
+      "type": "create-item",
+      "entity": "item",
+      "entityId": "tanaman-custom-kartu-uji-tanaman",
+      "message": "Kartu Kartu Uji Tanaman dibuat untuk kategori tanaman."
+    },
+    {
+      "id": "4c8acd51-99c3-4abf-9b6d-08d5da37a1e1",
+      "at": "2026-03-31T05:50:05.288Z",
+      "type": "public-comment",
+      "entity": "story-comment",
+      "entityId": "2861222d-f3bd-4be2-b245-d46f6e8f2f08",
+      "message": "Komentar publik baru pada website keseluruhan oleh Dev Reply."
+    },
+    {
+      "id": "fc2397b8-0269-448a-a918-32ca10dc5937",
+      "at": "2026-03-31T05:50:05.197Z",
+      "type": "public-comment",
+      "entity": "story-comment",
+      "entityId": "068770aa-71b3-4455-a9ac-338f7bd275b1",
+      "message": "Komentar publik baru pada website keseluruhan oleh Test User."
+    },
+    {
+      "id": "ecdc87c1-3b9d-487b-a0f1-a6400d211125",
+      "at": "2026-03-31T05:25:58.477Z",
+      "type": "update-item",
+      "entity": "item",
+      "entityId": "studio-custom-farm-game",
+      "message": "Info kartu Farm game diperbarui."
+    },
+    {
+      "id": "aeaa2e93-f642-4b41-b5c3-592b58dd8df6",
+      "at": "2026-03-31T05:25:58.470Z",
+      "type": "create-item",
+      "entity": "item",
+      "entityId": "studio-custom-farm-game",
+      "message": "Kartu Farm game dibuat untuk kategori studio."
+    },
+    {
+      "id": "fdb80a58-a8a8-4938-9183-918957faf05c",
+      "at": "2026-03-31T04:00:19.566Z",
+      "type": "update-video",
+      "entity": "item",
+      "entityId": "tan-001-monstera",
+      "message": "Video item Monstera diperbarui."
+    },
+    {
+      "id": "51ecfc30-3d74-4ee1-bd71-b88fc3dce7a7",
+      "at": "2026-03-30T22:39:47.637Z",
+      "type": "public-comment",
+      "entity": "story-comment",
+      "entityId": "1360a76c-8a9c-47b8-8a8a-feeaaed3bfc2",
+      "message": "Komentar publik baru pada Green Atlas Kickoff oleh Test."
+    },
+    {
+      "id": "evt-seed-1",
+      "type": "seed",
+      "entity": "post",
+      "entityId": "post-green-atlas-kickoff",
+      "message": "Seed post dibuat.",
+      "at": "2026-03-30T00:00:00.000Z"
+    },
+    {
+      "id": "evt-seed-2",
+      "type": "seed",
+      "entity": "post",
+      "entityId": "post-wild-echo-rollout",
+      "message": "Seed post dibuat.",
+      "at": "2026-03-30T00:10:00.000Z"
+    },
+    {
+      "id": "evt-seed-3",
+      "type": "seed",
+      "entity": "post",
+      "entityId": "post-tech-forge-stack",
+      "message": "Seed post dibuat.",
+      "at": "2026-03-30T00:20:00.000Z"
+    }
+  ]
+}

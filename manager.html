@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseBoard Manager</title>
+  <meta name="theme-color" content="#081015" />
+  <link rel="icon" type="image/svg+xml" href="assets/pulseboard-mark.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="theme-manager" data-page="manager">
+  <div class="noise" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand magnetic" href="index.html"><span>PulseBoard</span><span>Fusion</span></a>
+    <nav class="nav"><a href="index.html" class="">Home</a><a href="world.html" class="">World Atlas</a><a href="tanaman.html" class="">Green Atlas</a><a href="binatang.html" class="">Wild Echo</a><a href="teknologi.html" class="">Tech Forge</a><a href="news.html" class="">News Desk</a><a href="commerce.html" class="">E-Commerce</a><a href="azka.html" class="">Azka Garden</a><a href="portfolio.html" class="">Studio Deck</a><a href="game.html" class="">Farm World</a></nav>
+    <div class="header-tools">
+      <span class="chip" id="storageMode">Mode aman</span>
+      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span></button>
+    </div>
+  </header>
+  <aside class="mobile-menu" id="mobileMenu" aria-hidden="true"><a href="index.html" class="">Home</a><a href="world.html" class="">World Atlas</a><a href="tanaman.html" class="">Green Atlas</a><a href="binatang.html" class="">Wild Echo</a><a href="teknologi.html" class="">Tech Forge</a><a href="news.html" class="">News Desk</a><a href="commerce.html" class="">E-Commerce</a><a href="azka.html" class="">Azka Garden</a><a href="portfolio.html" class="">Studio Deck</a><a href="game.html" class="">Farm World</a></aside>
+
+  <main class="manager-shell shell">
+    <section class="manager-hero reveal">
+      <div>
+        <div class="eyebrow">Persistent YouTube cards</div>
+        <h1>Tempel link YouTube asli, simpan permanen, dan pakai ulang pada Home, Green Atlas, Wild Echo, Tech Forge, World Atlas, Studio Deck, News Desk, E-Commerce, dan Azka Garden.</h1>
+        <p>Halaman ini menerapkan sistem kode sebelumnya ke kerangka desain yang Anda lampirkan. Pilih item, cari video yang tepat di YouTube, tempel link asli, lalu simpan permanen ke kartu.</p>
+      </div>
+      <div class="hero-actions">
+        <a class="ghost-button magnetic" href="posts.html">Open Post Studio</a>
+        <button class="button magnetic open-create-card" id="openCreateButton" type="button">Tambah Kartu</button>
+        <button class="ghost-button magnetic" id="openBulkButton">Bulk Import</button>
+        <button class="ghost-button magnetic" type="button" id="exportJsonButton">Export JSON</button>
+        <button class="ghost-button magnetic" type="button" id="openSocialButton">Tambah Social Media</button>
+      </div>
+      <section class="manager-stat-grid" id="stats"></section>
+    </section>
+
+    <section class="manager-main" id="managerMain">
+      <aside class="manager-panel sidebar">
+        <p class="panel-label">Kontrol</p>
+        <div class="control-group">
+          <label for="categorySelect">Kategori</label>
+          <div class="pill-row" id="categoryPills">
+            <button class="pill active" data-category="">Semua</button>
+            <button class="pill" data-category="home">Home</button>
+            <button class="pill" data-category="tanaman">Tanaman</button>
+            <button class="pill" data-category="hewan">Hewan</button>
+            <button class="pill" data-category="teknologi">Teknologi</button>
+            <button class="pill" data-category="world">World Atlas</button>
+            <button class="pill" data-category="studio">Studio Deck</button>
+            <button class="pill" data-category="news">News Desk</button>
+            <button class="pill" data-category="commerce">E-Commerce</button>
+            <button class="pill" data-category="azka">Azka Garden</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="searchInput">Cari item</label>
+          <input id="searchInput" type="search" placeholder="Contoh: jahe, domba, python" />
+        </div>
+
+        <div class="control-group inline">
+          <input id="missingOnly" type="checkbox" />
+          <label for="missingOnly">Tampilkan yang belum punya video</label>
+        </div>
+
+        <div class="control-group">
+          <button class="button full" id="reloadButton">Muat Ulang</button>
+        </div>
+
+        <div class="control-group">
+          <button class="button full open-create-card" id="sidebarCreateButton" type="button">Tambah Kartu Video</button>
+        </div>
+
+        <div class="manager-helper">
+          <p class="panel-label">Cara pakai</p>
+          <ol>
+            <li>Pilih kategori atau cari item.</li>
+            <li>Tekan <strong>Acak Sesuai Judul</strong> untuk membuka pencarian yang lebih relevan.</li>
+            <li>Bandingkan hasilnya lalu salin link asli video yang paling tepat.</li>
+            <li>Tempel ke kartu lalu <strong>Simpan</strong>.</li>
+            <li>Gunakan tombol <strong>Tambah Kartu Video</strong> untuk menambah kartu baru pada Home, Green Atlas, Wild Echo, Tech Forge, World Atlas, Studio Deck, News Desk, E-Commerce, dan Azka Garden; lalu ubah judul, deskripsi, dan link <strong>Buka website</strong> sesuai kebutuhan.</li>
+          </ol>
+        </div>
+
+        <div class="manager-helper social-admin-panel">
+          <div class="social-admin-panel__head">
+            <p class="panel-label">Footer social media</p>
+            <button class="ghost-button open-social-dialog" id="sidebarSocialButton" type="button">Tambah Social Media</button>
+          </div>
+          <p class="social-admin-panel__text">Tambahkan nama social media, logo singkat/emoji/URL gambar, dan link publik. Semua perubahan disimpan permanen dan langsung tampil di footer pengunjung.</p>
+          <div id="socialList" class="social-admin-list"></div>
+        </div>
+      </aside>
+
+      <section class="manager-panel content" id="managerContent">
+        <div class="content-topbar">
+          <div>
+            <p class="panel-label">Katalog Item</p>
+            <h2 id="resultTitle">Semua item</h2>
+          </div>
+          <div class="content-actions">
+            <button class="button magnetic open-create-card" id="inlineCreateButton" type="button">Tambah Kartu Video</button>
+            <div class="pager" id="pager"></div>
+          </div>
+        </div>
+        <div id="statusBar" class="status-bar"></div>
+        <div class="surface-line"></div>
+        <div class="cards" id="cards"></div>
+      </section>
+    </section>
+
+
+    <section class="manager-panel comment-moderation-panel reveal" id="commentModerationPanel">
+      <div class="content-topbar">
+        <div>
+          <p class="panel-label">Developer Edit · Moderasi komentar</p>
+          <h2>Komentar website keseluruhan</h2>
+        </div>
+        <div class="content-actions">
+          <button class="ghost-button magnetic" id="refreshCommentModerationButton" type="button">Refresh komentar</button>
+        </div>
+      </div>
+      <p class="comment-moderation-lead">Kata yang mengganggu akan disunting otomatis. Dari panel ini Anda bisa menyembunyikan komentar dari publik atau menghapusnya secara permanen dari database.</p>
+      <div id="commentModerationStatus" class="status-bar">Panel moderasi komentar sedang disiapkan.</div>
+      <div id="commentModerationList" class="comment-moderation-list"></div>
+    </section>
+
+  </main>
+
+  <dialog id="bulkDialog" class="bulk-dialog">
+    <form method="dialog" class="bulk-card">
+      <div class="bulk-head">
+        <div>
+          <p class="panel-label">Bulk Import</p>
+          <h3>Tempel banyak link sekaligus</h3>
+        </div>
+        <button class="icon-btn" value="cancel" type="submit">✕</button>
+      </div>
+      <p class="bulk-help">Format: <code>Nama Item | https://www.youtube.com/watch?v=VIDEO_ID</code></p>
+      <textarea id="bulkText" rows="12" placeholder="Jahe | https://www.youtube.com/watch?v=...
+Tomat | https://www.youtube.com/watch?v=...
+Python | https://www.youtube.com/watch?v=..."></textarea>
+      <div class="bulk-actions">
+        <button type="button" class="button" id="bulkSaveButton">Simpan Bulk</button>
+        <button type="submit" class="ghost-button">Tutup</button>
+      </div>
+      <div id="bulkResult" class="bulk-result"></div>
+    </form>
+  </dialog>
+
+  
+<dialog id="createDialog" class="bulk-dialog">
+  <form method="dialog" class="bulk-card">
+    <div class="bulk-head">
+      <div>
+        <p class="panel-label">Tambah kartu</p>
+        <h3>Buat kartu video baru</h3>
+      </div>
+      <button class="icon-btn" value="cancel" type="submit">✕</button>
+    </div>
+    <div class="control-group">
+      <label for="createCategory">Section tujuan</label>
+      <select id="createCategory">
+        <option value="home">Home</option>
+        <option value="tanaman">Green Atlas</option>
+        <option value="hewan">Wild Echo</option>
+        <option value="teknologi">Tech Forge</option>
+        <option value="world">World Atlas</option>
+        <option value="studio">Studio Deck</option>
+        <option value="news">News Desk</option>
+        <option value="commerce">E-Commerce</option>
+        <option value="azka">Azka Garden</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="createName">Judul kartu</label>
+      <input id="createName" type="text" placeholder="Contoh: Farm game" />
+    </div>
+    <div class="control-group">
+      <label for="createWebsite">Link website tujuan</label>
+      <input id="createWebsite" type="url" placeholder="https://bigfarm.goodgamestudios.com/?utm_source=chatgpt.com" />
+    </div>
+    <div class="control-group">
+      <label for="createDescription">Deskripsi singkat</label>
+      <textarea id="createDescription" rows="3" placeholder="Ringkasan pendek untuk kartu baru..."></textarea>
+    </div>
+    <div class="control-group">
+      <label for="createSearchQuery">Kata kunci pencarian YouTube</label>
+      <input id="createSearchQuery" type="text" placeholder="Contoh: big farm official trailer" />
+    </div>
+    <div class="control-group">
+      <label for="createYoutube">Link video YouTube awal (opsional)</label>
+      <input id="createYoutube" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+    </div>
+    <div class="control-group">
+      <label for="createDownload">Link download permanen (opsional)</label>
+      <input id="createDownload" type="url" placeholder="https://example.com/file.pdf" />
+    </div>
+    <div class="bulk-actions">
+      <button type="button" class="button" id="createSaveButton">Buat kartu</button>
+      <button type="submit" class="ghost-button">Tutup</button>
+    </div>
+    <div id="createResult" class="bulk-result"></div>
+  </form>
+</dialog>
+
+
+
+<dialog id="socialDialog" class="bulk-dialog">
+  <form method="dialog" class="bulk-card">
+    <div class="bulk-head">
+      <div>
+        <p class="panel-label">Footer social media</p>
+        <h3>Tambah atau ubah social media</h3>
+      </div>
+      <button class="icon-btn" value="cancel" type="submit">✕</button>
+    </div>
+    <input id="socialEditId" type="hidden" />
+    <div class="control-group">
+      <label for="socialName">Nama social media</label>
+      <input id="socialName" type="text" placeholder="Contoh: Behance" />
+    </div>
+    <div class="control-group">
+      <label for="socialIcon">Logo singkat / emoji / URL gambar</label>
+      <input id="socialIcon" type="text" placeholder="Contoh: Be / 🎨 / https://example.com/logo.png" />
+    </div>
+    <div class="control-group">
+      <label for="socialLink">Link social media</label>
+      <input id="socialLink" type="url" placeholder="https://www.behance.net/username" />
+    </div>
+    <div class="bulk-actions">
+      <button type="button" class="button" id="socialSaveButton">Simpan social media</button>
+      <button type="submit" class="ghost-button">Tutup</button>
+    </div>
+    <div id="socialResult" class="bulk-result"></div>
+  </form>
+</dialog>
+
+  <template id="cardTemplate">
+    <article class="manager-card">
+      <div class="video-frame-wrap"><div class="video-frame"></div></div>
+      <div class="card-body">
+        <div class="card-meta-line"><div class="card-meta-cluster"><span class="tiny"></span><span class="chip"></span></div><button class="ghost-button delete-card hidden" type="button">Delete Video Card</button></div>
+        <h3 class="card-title"></h3>
+        <p class="card-query"></p>
+        <div class="card-actions">
+          <a class="ghost-button yt-search" target="_blank" rel="noopener noreferrer">Cari di YouTube</a>
+          <button class="ghost-button shuffle-search" type="button">Acak Sesuai Judul</button>
+          <a class="ghost-button open-site hidden" target="_blank" rel="noopener noreferrer">Buka Website</a>
+          <a class="ghost-button open-watch hidden" target="_blank" rel="noopener noreferrer">Buka Video</a>
+          <a class="ghost-button open-download hidden" target="_blank" rel="noopener noreferrer" download>Download</a>
+          <button class="ghost-button clear-video hidden" type="button">Hapus Video</button>
+        </div>
+        <div class="edit-box">
+          <label>Tempel link YouTube asli</label>
+          <div class="edit-row">
+            <input type="url" class="video-input" placeholder="https://www.youtube.com/watch?v=..." />
+            <button class="button save-video">Simpan</button>
+          </div>
+        </div>
+        <div class="edit-box meta-edit-box hidden">
+          <label>Judul kartu</label>
+          <input type="text" class="name-input" placeholder="Contoh: Farm game" />
+          <label>Link website tujuan</label>
+          <input type="url" class="website-input" placeholder="https://example.com" />
+          <label>Deskripsi singkat</label>
+          <textarea class="desc-input" rows="3" placeholder="Deskripsi singkat untuk kartu ini..."></textarea>
+          <label>Kata kunci pencarian</label>
+          <input type="text" class="query-input" placeholder="Contoh: farm game official trailer" />
+          <label>Link download permanen</label>
+          <input type="url" class="download-input" placeholder="https://example.com/file.pdf" />
+          <div class="edit-row edit-row--single">
+            <button class="ghost-button save-meta" type="button">Simpan info kartu</button>
+          </div>
+        </div>
+        <p class="save-note"></p>
+      </div>
+    </article>
+  </template>
+
+  <script src="shared-shell.js"></script>
+  <script src="manager.js"></script>
+  <script src="site-i18n.js"></script>
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseBoard Fusion | Farm World</title>
+  <meta name="theme-color" content="#0d0c0a" />
+  <link rel="icon" type="image/svg+xml" href="assets/pulseboard-mark.svg" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/vendor/three/build/three.module.js",
+      "three/addons/": "/vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body class="theme-game" data-page="game">
+  <div class="loader loader--game" id="gameLoader" aria-hidden="true">
+    <div class="loader__veil" aria-hidden="true"></div>
+    <div class="loader__inner game-loader__inner">
+      <div class="loader__label">PulseBoard Fusion | Farm World</div>
+      <div class="loader__subtitle">Memuat dunia open world — Town Hub, Orchard, Ternak, Produksi, Forest & Dungeon Rift.</div>
+      <div class="loader__bar"><span id="gameLoaderBar"></span></div>
+      <div class="loader__count" id="gameLoaderCount">000</div>
+      <p class="game-loader__text" id="gameLoaderText">Membangun town hub, barn, orchard, sawah, dan karakter utama…</p>
+    </div>
+  </div>
+
+  <main class="game-stage" id="gameStage">
+    <canvas id="farmCanvas" aria-label="PulseBoard Farm World 3D"></canvas>
+
+    <!-- Top bar -->
+    <header class="game-topbar">
+      <a class="brand magnetic" href="index.html"><span>PulseBoard</span><span>Fusion</span></a>
+      <nav class="game-nav" aria-label="Game navigation">
+        <a href="index.html">Home</a>
+        <a href="world.html">World Atlas</a>
+        <a href="tanaman.html">Green Atlas</a>
+        <a href="binatang.html">Wild Echo</a>
+        <a href="teknologi.html">Tech Forge</a>
+        <a href="news.html">News Desk</a>
+        <a href="commerce.html">E-Commerce</a>
+        <a href="azka.html">Azka Garden</a>
+        <a href="portfolio.html">Studio Deck</a>
+        <a href="game.html">Farm World</a>
+      </nav>
+      <button class="menu-toggle game-menu-toggle" id="gameMenuToggle" aria-expanded="false" aria-controls="gameMobileMenu"><span></span><span></span></button>
+      <div class="game-actions">
+        <button class="ghost-button magnetic zone-nav-btn" id="focusTownButton" type="button"><span class="zone-nav-btn__icon">🏘️</span>Town</button>
+        <button class="ghost-button magnetic zone-nav-btn" id="focusBarnButton" type="button"><span class="zone-nav-btn__icon">🐄</span>Barn</button>
+        <button class="ghost-button magnetic zone-nav-btn" id="focusOrchardButton" type="button"><span class="zone-nav-btn__icon">🍎</span>Orchard</button>
+        <button class="ghost-button magnetic zone-nav-btn" id="focusForestButton" type="button"><span class="zone-nav-btn__icon">🌲</span>Forest</button>
+        <button class="ghost-button magnetic zone-nav-btn" id="focusDungeonButton" type="button"><span class="zone-nav-btn__icon">⚔️</span>Dungeon</button>
+        <button class="ghost-button magnetic" id="toggleInventoryButton" type="button">🎒 Bag</button>
+        <button class="ghost-button magnetic" id="toggleUiButton" type="button" aria-pressed="false">Hide UI</button>
+        <button class="button magnetic" id="fullscreenButton" type="button">Fullscreen</button>
+      </div>
+    </header>
+    <aside class="mobile-menu game-mobile-menu" id="gameMobileMenu" aria-hidden="true">
+      <a href="index.html">Home</a><a href="world.html">World Atlas</a><a href="tanaman.html">Green Atlas</a><a href="binatang.html">Wild Echo</a><a href="teknologi.html">Tech Forge</a><a href="news.html">News Desk</a><a href="commerce.html">E-Commerce</a><a href="azka.html">Azka Garden</a><a href="portfolio.html">Studio Deck</a><a href="game.html">Farm World</a>
+    </aside>
+
+    <!-- Zone indicator (top center) -->
+    <div class="zone-indicator" id="zoneIndicator">
+      <span class="zone-indicator__icon">🏘️</span>
+      <span id="zoneLabel">Town Hub</span>
+    </div>
+
+    <!-- Dungeon progress (top center, hidden unless in dungeon) -->
+    <div class="dungeon-bar" id="dungeonBar">
+      <span>⚔️ Dungeon Rift</span>
+      <div class="dungeon-bar__fill-wrap"><div class="dungeon-bar__fill" id="dungeonFill" style="width:0%"></div></div>
+      <span id="dungeonWaveLabel">Wave 0/5</span>
+    </div>
+
+    <!-- Controls help trigger button -->
+    <button class="game-help-trigger" id="gameHelpTrigger" type="button" title="Tampilkan kontrol (tekan ?)">?</button>
+
+    <!-- Controls help tooltip (hidden by default, shown on trigger) -->
+    <div class="game-help" id="gameHelp" aria-hidden="true">
+      <div class="game-help__header">
+        <div class="eyebrow">Kontrol</div>
+        <button class="game-help__close" id="gameHelpClose" type="button" aria-label="Tutup">✕</button>
+      </div>
+      <div class="game-help__grid">
+        <div class="game-help__item"><span>WASD / ↑↓←→</span><strong>Gerak</strong></div>
+        <div class="game-help__item"><span>Shift</span><strong>Lari</strong></div>
+        <div class="game-help__item"><span>E</span><strong>Interaksi</strong></div>
+        <div class="game-help__item"><span>Space</span><strong>Lompat</strong></div>
+        <div class="game-help__item"><span>Drag mouse</span><strong>Kamera</strong></div>
+        <div class="game-help__item"><span>Scroll</span><strong>Zoom</strong></div>
+        <div class="game-help__item"><span>Q</span><strong>Petir ⚡</strong></div>
+        <div class="game-help__item"><span>R</span><strong>Gelombang 💧</strong></div>
+        <div class="game-help__item"><span>I</span><strong>Inventory</strong></div>
+        <div class="game-help__item"><span>P</span><strong>Players</strong></div>
+        <div class="game-help__item"><span>H</span><strong>Sembunyikan UI</strong></div>
+        <div class="game-help__item"><span>?</span><strong>Kontrol ini</strong></div>
+      </div>
+      <div class="game-help__spells">
+        <span class="pill">🌱 Tanam → tumbuh otomatis</span>
+        <span class="pill">🌾 Panen → lahan kosong</span>
+        <span class="pill">📱 Joystick → gerak</span>
+        <span class="pill">👆 Geser kanan → kamera</span>
+      </div>
+      <div class="game-input-mode" id="gameInputMode">Input: keyboard + mouse</div>
+    </div>
+
+    <!-- Left HUD: Level, stats, vitals, quest -->
+    <section class="game-hud game-hud--left">
+      <div class="hud-card">
+        <div class="hud-title-row">
+          <div>
+            <div class="eyebrow">Farm World</div>
+            <h2>Level <span id="levelValue">1</span></h2>
+          </div>
+          <div class="hud-coins" id="coinDisplay">
+            <span class="hud-coin-icon">🪙</span>
+            <strong id="coinValue">1800</strong>
+          </div>
+        </div>
+        <div class="hud-xp-bar" aria-label="XP bar">
+          <div class="hud-xp-fill" id="xpFill" style="width:0%"></div>
+          <span class="hud-xp-label" id="xpLabel">0 / 100 XP</span>
+        </div>
+      </div>
+
+      <!-- Vital bars: HP, MP, Hunger, Thirst, Energy -->
+      <div class="hud-vitals">
+        <div class="hud-vital">
+          <span class="hud-vital__label">HP</span>
+          <div class="hud-vital__bar"><div class="hud-vital__fill hud-vital__fill--hp" id="hpFill" style="width:85%"></div></div>
+          <span class="hud-vital__val" id="hpVal">85</span>
+        </div>
+        <div class="hud-vital">
+          <span class="hud-vital__label">MP</span>
+          <div class="hud-vital__bar"><div class="hud-vital__fill hud-vital__fill--mp" id="mpFill" style="width:100%"></div></div>
+          <span class="hud-vital__val" id="mpVal">100</span>
+        </div>
+        <div class="hud-vital">
+          <span class="hud-vital__label">🍖</span>
+          <div class="hud-vital__bar"><div class="hud-vital__fill hud-vital__fill--food" id="foodFill" style="width:72%"></div></div>
+          <span class="hud-vital__val" id="foodVal">72</span>
+        </div>
+        <div class="hud-vital">
+          <span class="hud-vital__label">💧</span>
+          <div class="hud-vital__bar"><div class="hud-vital__fill hud-vital__fill--water" id="waterVitalFill" style="width:60%"></div></div>
+          <span class="hud-vital__val" id="waterVitalVal">60</span>
+        </div>
+        <div class="hud-vital">
+          <span class="hud-vital__label">⚡</span>
+          <div class="hud-vital__bar"><div class="hud-vital__fill hud-vital__fill--energy" id="energyFill" style="width:90%"></div></div>
+          <span class="hud-vital__val" id="energyVal">90</span>
+        </div>
+      </div>
+
+      <div class="hud-grid">
+        <div class="hud-stat"><span>Weather</span><strong id="weatherValue">Cerah</strong></div>
+        <div class="hud-stat"><span>Season</span><strong id="seasonValue">Panen</strong></div>
+        <div class="hud-stat"><span>Storage</span><strong id="storageValue">24/80</strong></div>
+        <div class="hud-stat"><span>Orders</span><strong id="ordersValue">3 aktif</strong></div>
+        <div class="hud-stat"><span>Clock</span><strong id="clockValue">06:00</strong></div>
+        <div class="hud-stat"><span>Day</span><strong id="dayValue">Day 01</strong></div>
+      </div>
+
+      <div class="hud-quest" id="questPanel" aria-live="polite">
+        <div class="hud-quest__label">Quest aktif — Mira Guide</div>
+        <div class="hud-quest__text" id="questText">Mulai bertani untuk membuka quest!</div>
+        <div class="hud-quest__progress" id="questProgress"></div>
+      </div>
+    </section>
+
+    <!-- Minimap (top right) -->
+    <div class="minimap-panel" id="minimapPanel">
+      <div class="minimap-canvas" id="minimapCanvas">
+        <div class="minimap-zone minimap-zone--orchard" title="Orchard Utara"></div>
+        <div class="minimap-zone minimap-zone--forest" title="Forest & Creature"></div>
+        <div class="minimap-zone minimap-zone--farm" title="Lahan Kering"></div>
+        <div class="minimap-zone minimap-zone--water" title="Koridor Air"></div>
+        <div class="minimap-zone minimap-zone--town" title="Town Hub"></div>
+        <div class="minimap-zone minimap-zone--barn" title="Area Ternak"></div>
+        <div class="minimap-zone minimap-zone--production" title="Produksi"></div>
+        <div class="minimap-player" id="minimapPlayer" style="left:56px;top:56px"></div>
+      </div>
+      <div class="minimap-label" id="minimapZoneLabel">Town Hub</div>
+    </div>
+
+    <!-- Right: Context panel (selected object) -->
+    <aside class="game-panel" id="gamePanel">
+      <div class="eyebrow">Objek terpilih</div>
+      <h3 id="panelTitle">Town Hub</h3>
+      <p id="panelText">Dekati atau klik bangunan, kandang, bed sayur, orchard, dan mesin untuk melihat aksi kontekstual.</p>
+      <div class="panel-meta" id="panelMeta"></div>
+      <div class="game-panel__actions" id="panelActions"></div>
+    </aside>
+
+    <!-- Inventory Drawer -->
+    <div class="inventory-drawer" id="inventoryDrawer">
+      <div class="inventory-drawer__header">
+        <div class="inventory-drawer__title">🎒 Backpack — Barn Storage</div>
+        <button class="inventory-drawer__close" id="inventoryClose" type="button">✕</button>
+      </div>
+      <div class="inventory-grid" id="inventoryGrid">
+        <div class="inv-slot" title="Wheat x12">🌾<span class="inv-slot__count">12</span></div>
+        <div class="inv-slot" title="Milk x4">🥛<span class="inv-slot__count">4</span></div>
+        <div class="inv-slot" title="Egg x8">🥚<span class="inv-slot__count">8</span></div>
+        <div class="inv-slot" title="Apple x6">🍎<span class="inv-slot__count">6</span></div>
+        <div class="inv-slot" title="Carrot x9">🥕<span class="inv-slot__count">9</span></div>
+        <div class="inv-slot" title="Honey x2">🍯<span class="inv-slot__count">2</span></div>
+        <div class="inv-slot" title="Bread x3">🍞<span class="inv-slot__count">3</span></div>
+        <div class="inv-slot" title="Fish x5">🐟<span class="inv-slot__count">5</span></div>
+        <div class="inv-slot" title="Fertilizer x7">🧪<span class="inv-slot__count">7</span></div>
+        <div class="inv-slot inv-slot--empty"></div>
+        <div class="inv-slot inv-slot--empty"></div>
+        <div class="inv-slot inv-slot--empty"></div>
+        <div class="inv-slot inv-slot--empty"></div>
+        <div class="inv-slot inv-slot--empty"></div>
+        <div class="inv-slot inv-slot--empty"></div>
+      </div>
+    </div>
+
+    <!-- Avatar Panel (Social — Players Online) -->
+    <aside class="avatar-panel is-hidden" id="avatarPanel" aria-label="Players online">
+      <div class="avatar-panel__header">
+        <div>
+          <div class="eyebrow">Avatar Panel</div>
+          <strong class="avatar-panel__count" id="avatarOnlineCount">1 online</strong>
+        </div>
+        <button class="avatar-panel__close" id="avatarPanelClose" type="button" aria-label="Tutup avatar panel">✕</button>
+      </div>
+      <div class="avatar-panel__list" id="avatarPlayerList">
+        <div class="player-card">
+          <div class="player-card__portrait">🧑‍🌾</div>
+          <div class="player-card__info">
+            <div class="player-card__name">Roberto (Kamu)</div>
+            <div class="player-card__meta">Lv.1 · Farmer · Town Hub</div>
+            <div class="player-card__status" id="localPlayerStatus">Online</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Avatar panel toggle button -->
+    <button class="avatar-panel-toggle" id="avatarPanelToggle" type="button">
+      👥 <span id="avatarToggleCount">1</span> Players
+    </button>
+
+    <!-- Interaction hint (bottom center) -->
+    <div class="game-hint" id="gameHint">Dekati objek lalu tekan <strong>E</strong> untuk berinteraksi.</div>
+    <div class="game-toast" id="gameToast" aria-live="polite"></div>
+    <div class="game-float-layer" id="floatLayer" aria-hidden="true"></div>
+
+    <!-- Global Chat -->
+    <button class="game-chat-toggle" id="chatToggle" type="button" title="Chat global">💬 <span id="chatOnlineCount">0</span></button>
+    <div class="game-chat is-hidden" id="gameChat" aria-label="Chat global pemain">
+      <div class="game-chat__header">
+        <span class="eyebrow">Chat Global</span>
+        <span class="game-chat__online" id="chatOnlineLabel">0 online</span>
+        <button class="game-chat__close" id="chatClose" type="button" aria-label="Tutup chat">✕</button>
+      </div>
+      <div class="game-chat__name-row">
+        <span class="game-chat__you">Nama kamu:</span>
+        <strong class="game-chat__player-name" id="chatPlayerName">—</strong>
+      </div>
+      <div class="game-chat__messages" id="chatMessages" aria-live="polite"></div>
+      <div class="game-chat__input-row">
+        <input class="game-chat__input" id="chatInput" type="text" placeholder="Ketik pesan…" maxlength="200" autocomplete="off" />
+        <button class="game-chat__send" id="chatSend" type="button">Kirim</button>
+      </div>
+    </div>
+
+    <!-- Mobile camera look area (right side, behind buttons) -->
+    <div class="game-cam-area" id="gameCamArea" aria-label="Geser untuk kamera"></div>
+
+    <!-- Mobile controls -->
+    <div class="game-mobile-controls" id="gameMobileControls" aria-hidden="true">
+      <div class="game-stick" id="moveStick" aria-label="Virtual move stick">
+        <div class="game-stick__ring"></div>
+        <div class="game-stick__knob" id="moveStickKnob"></div>
+      </div>
+      <div class="game-mobile-buttons">
+        <button class="game-mobile-button game-mobile-button--secondary" id="zapButton" type="button">⚡ Zap</button>
+        <button class="game-mobile-button game-mobile-button--secondary" id="waveButton" type="button">💧 Wave</button>
+        <button class="game-mobile-button game-mobile-button--run" id="runButton" type="button">🏃 Run</button>
+        <button class="game-mobile-button" id="jumpButton" type="button">⬆️ Jump</button>
+        <button class="game-mobile-button game-mobile-button--primary" id="actionButton" type="button">✅ Aksi</button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="farm-bootstrap.js"></script>
+  <script src="shared-shell.js"></script>
+  <script src="site-i18n.js"></script>
+  <script>
+    /* — Help tooltip close button — */
+    const gameHelpClose = document.getElementById('gameHelpClose');
+    const gameHelpEl = document.getElementById('gameHelp');
+    if (gameHelpClose && gameHelpEl) {
+      gameHelpClose.addEventListener('click', () => {
+        gameHelpEl.classList.remove('is-visible');
+        gameHelpEl.setAttribute('aria-hidden', 'true');
+        document.getElementById('gameHelpTrigger')?.classList.remove('is-active');
+      });
+    }
+
+    /* — Avatar Panel toggle — */
+    const avatarPanelToggle = document.getElementById('avatarPanelToggle');
+    const avatarPanel = document.getElementById('avatarPanel');
+    const avatarPanelClose = document.getElementById('avatarPanelClose');
+    if (avatarPanelToggle && avatarPanel) {
+      avatarPanelToggle.addEventListener('click', () => {
+        avatarPanel.classList.toggle('is-hidden');
+        const panel = document.getElementById('gamePanel');
+        const drawer = document.getElementById('inventoryDrawer');
+        if (!avatarPanel.classList.contains('is-hidden')) {
+          if (panel) panel.style.display = 'none';
+          if (drawer) drawer.classList.remove('is-visible');
+        } else {
+          if (panel) panel.style.display = '';
+        }
+      });
+    }
+    if (avatarPanelClose) {
+      avatarPanelClose.addEventListener('click', () => {
+        avatarPanel.classList.add('is-hidden');
+        const panel = document.getElementById('gamePanel');
+        if (panel) panel.style.display = '';
+      });
+    }
+
+    /* — Inventory drawer toggle — */
+    const toggleInventoryButton = document.getElementById('toggleInventoryButton');
+    const inventoryDrawer = document.getElementById('inventoryDrawer');
+    const inventoryClose = document.getElementById('inventoryClose');
+    if (toggleInventoryButton && inventoryDrawer) {
+      toggleInventoryButton.addEventListener('click', () => {
+        inventoryDrawer.classList.toggle('is-visible');
+        if (inventoryDrawer.classList.contains('is-visible')) {
+          avatarPanel.classList.add('is-hidden');
+          const panel = document.getElementById('gamePanel');
+          if (panel) panel.style.display = 'none';
+        } else {
+          const panel = document.getElementById('gamePanel');
+          if (panel) panel.style.display = '';
+        }
+      });
+    }
+    if (inventoryClose && inventoryDrawer) {
+      inventoryClose.addEventListener('click', () => {
+        inventoryDrawer.classList.remove('is-visible');
+        const panel = document.getElementById('gamePanel');
+        if (panel) panel.style.display = '';
+      });
+    }
+
+    /* — Keyboard shortcuts — */
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'i' || e.key === 'I') {
+        toggleInventoryButton?.click();
+      }
+      if (e.key === 'p' || e.key === 'P') {
+        avatarPanelToggle?.click();
+      }
+    });
+
+    /* — Zone navigation extra buttons — */
+    const focusOrchardButton = document.getElementById('focusOrchardButton');
+    const focusForestButton = document.getElementById('focusForestButton');
+    const focusDungeonButton = document.getElementById('focusDungeonButton');
+    const zoneIndicator = document.getElementById('zoneIndicator');
+    const zoneLabel = document.getElementById('zoneLabel');
+    const minimapZoneLabel = document.getElementById('minimapZoneLabel');
+
+    const zones = [
+      { btn: 'focusTownButton', icon: '🏘️', name: 'Town Hub', cls: '', mxPct: 47, myPct: 47 },
+      { btn: 'focusBarnButton', icon: '🐄', name: 'Area Ternak', cls: 'zone--barn', mxPct: 73, myPct: 47 },
+      { btn: 'focusOrchardButton', icon: '🍎', name: 'Orchard Utara', cls: '', mxPct: 47, myPct: 12 },
+      { btn: 'focusForestButton', icon: '🌲', name: 'Forest & Creature Zone', cls: 'zone--forest', mxPct: 80, myPct: 12 },
+      { btn: 'focusDungeonButton', icon: '⚔️', name: 'Dungeon Rift', cls: 'zone--dungeon', mxPct: 80, myPct: 80 },
+    ];
+
+    zones.forEach(z => {
+      const btn = document.getElementById(z.btn);
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        zones.forEach(zz => {
+          document.getElementById(zz.btn)?.classList.remove('is-active');
+        });
+        btn.classList.add('is-active');
+        if (zoneIndicator) {
+          zoneIndicator.className = 'zone-indicator' + (z.cls ? ' ' + z.cls : '');
+          const icon = zoneIndicator.querySelector('.zone-indicator__icon');
+          if (icon) icon.textContent = z.icon;
+        }
+        if (zoneLabel) zoneLabel.textContent = z.name;
+        if (minimapZoneLabel) minimapZoneLabel.textContent = z.name;
+        const player = document.getElementById('minimapPlayer');
+        if (player) {
+          player.style.left = Math.round(z.mxPct * 120 / 100) + 'px';
+          player.style.top = Math.round(z.myPct * 120 / 100) + 'px';
+        }
+      });
+    });
+    document.getElementById('focusTownButton')?.classList.add('is-active');
+  </script>
+</body>
+</html>

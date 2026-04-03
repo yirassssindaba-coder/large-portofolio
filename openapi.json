@@ -1,0 +1,54 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PulseBoard API",
+    "version": "1.0.0",
+    "description": "CRUD items and posts for PulseBoard dashboard."
+  },
+  "paths": {
+    "/api/posts": {
+      "get": {
+        "summary": "List posts"
+      },
+      "post": {
+        "summary": "Create post"
+      }
+    },
+    "/api/posts/{id}": {
+      "get": {
+        "summary": "Get post detail"
+      },
+      "patch": {
+        "summary": "Update post"
+      },
+      "delete": {
+        "summary": "Soft delete post"
+      }
+    },
+    "/api/posts/{id}/restore": {
+      "post": {
+        "summary": "Restore soft-deleted post"
+      }
+    },
+    "/api/posts/{id}/status": {
+      "patch": {
+        "summary": "Change post workflow status"
+      }
+    },
+    "/api/posts/export": {
+      "get": {
+        "summary": "Export posts"
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health check"
+      }
+    },
+    "/api/status": {
+      "get": {
+        "summary": "Service status"
+      }
+    }
+  }
+}

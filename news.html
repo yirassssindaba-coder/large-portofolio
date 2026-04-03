@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News Desk</title>
+  <meta name="theme-color" content="#081015" />
+  <link rel="icon" type="image/svg+xml" href="assets/pulseboard-mark.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="theme-home" data-page="news">
+  <div class="noise" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand magnetic" href="index.html"><span>PulseBoard</span><span>Fusion</span></a>
+    <nav class="nav"><a href="index.html" class="">Home</a><a href="world.html" class="">World Atlas</a><a href="tanaman.html" class="">Green Atlas</a><a href="binatang.html" class="">Wild Echo</a><a href="teknologi.html" class="">Tech Forge</a><a href="news.html" class="is-active">News Desk</a><a href="commerce.html" class="">E-Commerce</a><a href="azka.html" class="">Azka Garden</a><a href="portfolio.html" class="">Studio Deck</a><a href="game.html" class="">Farm World</a></nav>
+    <div class="header-tools">
+      <button class="chip magnetic" type="button" data-dev-edit-button>Developer Edit</button>
+      <a class="chip magnetic" href="portfolio.html">Studio Deck</a>
+      <a class="chip magnetic" href="game.html">Farm World</a>
+      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="mobileMenu"><span></span><span></span></button>
+    </div>
+  </header>
+  <aside class="mobile-menu" id="mobileMenu" aria-hidden="true"><a href="index.html" class="">Home</a><a href="world.html" class="">World Atlas</a><a href="tanaman.html" class="">Green Atlas</a><a href="binatang.html" class="">Wild Echo</a><a href="teknologi.html" class="">Tech Forge</a><a href="news.html" class="is-active">News Desk</a><a href="commerce.html" class="">E-Commerce</a><a href="azka.html" class="">Azka Garden</a><a href="portfolio.html" class="">Studio Deck</a><a href="game.html" class="">Farm World</a></aside>
+  <main>
+    <section class="hero shell">
+      <div class="hero__top reveal in-view"><span class="eyebrow">PulseBoard Expansion</span><span>Additional lane</span></div>
+      <div class="world-page__head reveal in-view world-page__head--single">
+        <div>
+          <div class="eyebrow" data-extra-eyebrow></div>
+          <h1 data-extra-title></h1>
+          <p data-extra-kicker></p>
+          <p data-extra-body></p>
+        </div>
+      </div>
+    </section>
+    <section class="section shell catalog-section extra-section">
+      <div class="catalog-grid extra-grid" data-extra-grid></div>
+    </section>
+  </main>
+  <script src="shared-shell.js"></script>
+  <script src="extra-pages.js"></script>
+  <script src="site-i18n.js"></script>
+</body>
+</html>

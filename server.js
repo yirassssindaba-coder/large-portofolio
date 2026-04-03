@@ -1,0 +1,1563 @@
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const { URL } = require('node:url');
+
+const ROOT = __dirname;
+const PORT = Number(process.env.PORT || 5000);
+const HOST = '0.0.0.0';
+const ITEMS_DB_PATH = path.join(ROOT, 'db', 'items.json');
+const POSTS_DB_PATH = path.join(ROOT, 'db', 'posts.json');
+const ACTIVITY_DB_PATH = path.join(ROOT, 'db', 'activity.json');
+const STORY_COMMENTS_DB_PATH = path.join(ROOT, 'db', 'story-comments.json');
+const ANALYTICS_DB_PATH = path.join(ROOT, 'db', 'analytics.json');
+const FOOTER_DB_PATH = path.join(ROOT, 'db', 'footer.json');
+const SEARCH_HISTORY_DB_PATH = path.join(ROOT, 'db', 'search-history.json');
+const OPENAPI_PATH = path.join(ROOT, 'openapi.json');
+const ADMIN_TOKEN = String(process.env.ADMIN_TOKEN || 'roberto2026andpassword').trim();
+const WRITE_PROTECTED = Boolean(ADMIN_TOKEN);
+const RATE_WINDOW_MS = 15 * 60 * 1000;
+const rateBuckets = new Map();
+
+/* ─── Global Chat (in-memory SSE) ───────── */
+const chatClients = new Set();
+const chatMessages = [];
+const CHAT_MAX = 80;
+function chatBroadcast(payload) {
+  const data = `data: ${JSON.stringify(payload)}\n\n`;
+  for (const client of chatClients) {
+    try { client.write(data); } catch { chatClients.delete(client); }
+  }
+}
+
+const STATIC_ROUTES = new Map([
+  ['/', 'index.html'],
+  ['/index.html', 'index.html'],
+  ['/world', 'world.html'],
+  ['/world.html', 'world.html'],
+  ['/tanaman', 'tanaman.html'],
+  ['/tanaman.html', 'tanaman.html'],
+  ['/binatang', 'binatang.html'],
+  ['/binatang.html', 'binatang.html'],
+  ['/teknologi', 'teknologi.html'],
+  ['/teknologi.html', 'teknologi.html'],
+  ['/portfolio', 'portfolio.html'],
+  ['/portfolio.html', 'portfolio.html'],
+  ['/game', 'game.html'],
+  ['/game.html', 'game.html'],
+  ['/manager', 'manager.html'],
+  ['/manager.html', 'manager.html'],
+  ['/posts', 'posts.html'],
+  ['/posts.html', 'posts.html'],
+  ['/news', 'news.html'],
+  ['/news.html', 'news.html'],
+  ['/commerce', 'commerce.html'],
+  ['/commerce.html', 'commerce.html'],
+  ['/azka', 'azka.html'],
+  ['/azka.html', 'azka.html'],
+  ['/analytics', 'analytics.html'],
+  ['/analytics.html', 'analytics.html'],
+  ['/terms', 'terms.html'],
+  ['/terms.html', 'terms.html'],
+  ['/privacy', 'privacy.html'],
+  ['/privacy.html', 'privacy.html'],
+  ['/favicon.ico', 'assets/favicon.ico']
+]);
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.ico': 'image/x-icon',
+  '.pdf': 'application/pdf',
+  '.mp4': 'video/mp4',
+  '.txt': 'text/plain; charset=utf-8'
+};
+
+function nowIso() { return new Date().toISOString(); }
+function ensureDirFor(filePath) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
+function readJson(filePath, fallbackFactory = null) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return typeof fallbackFactory === 'function' ? fallbackFactory() : null;
+  }
+}
+function writeJson(filePath, data) {
+  ensureDirFor(filePath);
+  const payload = JSON.stringify(data, null, 2);
+  const tempPath = `${filePath}.tmp`;
+  fs.writeFileSync(tempPath, payload, 'utf8');
+  fs.renameSync(tempPath, filePath);
+}
+function defaultItemsDb() {
+  return { meta: { generatedAt: nowIso() }, items: [], stats: {} };
+}
+function defaultPostsDb() {
+  return { meta: { generatedAt: nowIso() }, posts: [] };
+}
+function defaultActivityDb() {
+  return { meta: { generatedAt: nowIso() }, events: [] };
+}
+function defaultAnalyticsDb() {
+  return { meta: { generatedAt: nowIso() }, events: [] };
+}
+function defaultSearchHistoryDb() {
+  return {
+    meta: {
+      name: 'PulseBoard Search History',
+      createdAt: nowIso(),
+      updatedAt: nowIso()
+    },
+    history: []
+  };
+}
+function normalizeSearchHistoryEntry(entry, fallbackIndex = 0) {
+  const query = String(entry?.query || '').trim().slice(0, 80);
+  if (!query) return null;
+  const page = String(entry?.page || 'home').trim().slice(0, 32) || 'home';
+  const hitsValue = Number(entry?.hits);
+  const timestamp = nowIso();
+  return {
+    id: String(entry?.id || `search-${fallbackIndex + 1}` || '').trim() || crypto.randomUUID(),
+    query,
+    page,
+    hits: Number.isFinite(hitsValue) ? Math.max(0, Math.floor(hitsValue)) : 0,
+    createdAt: String(entry?.createdAt || entry?.updatedAt || timestamp).trim() || timestamp,
+    updatedAt: String(entry?.updatedAt || entry?.createdAt || timestamp).trim() || timestamp
+  };
+}
+function loadSearchHistoryDb() {
+  const fallback = defaultSearchHistoryDb();
+  try {
+    const parsed = JSON.parse(fs.readFileSync(SEARCH_HISTORY_DB_PATH, 'utf8'));
+    const history = Array.isArray(parsed?.history)
+      ? parsed.history.map(normalizeSearchHistoryEntry).filter(Boolean)
+      : [];
+    history.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+    return {
+      meta: {
+        ...fallback.meta,
+        ...(parsed?.meta && typeof parsed.meta === 'object' ? parsed.meta : {}),
+        updatedAt: nowIso()
+      },
+      history: history.slice(0, 30)
+    };
+  } catch {
+    writeJson(SEARCH_HISTORY_DB_PATH, fallback);
+    return fallback;
+  }
+}
+function saveSearchHistoryDb(db) {
+  const normalized = {
+    meta: {
+      ...(db?.meta && typeof db.meta === 'object' ? db.meta : defaultSearchHistoryDb().meta),
+      updatedAt: nowIso()
+    },
+    history: Array.isArray(db?.history)
+      ? db.history.map(normalizeSearchHistoryEntry).filter(Boolean).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)).slice(0, 30)
+      : []
+  };
+  writeJson(SEARCH_HISTORY_DB_PATH, normalized);
+}
+function defaultStoryCommentsDb() {
+  return {
+    meta: {
+      name: 'Pulse Stories Global Comments',
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      backupAt: nowIso()
+    },
+    comments: []
+  };
+}
+function normalizeStoredComment(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  const id = String(entry.id || '').trim() || crypto.randomUUID();
+  const postId = String(entry.postId || '').trim();
+  if (!postId) return null;
+  const parentIdRaw = String(entry.parentId || '').trim();
+  const hiddenAt = String(entry.hiddenAt || '').trim() || null;
+  const status = String(entry.status || (hiddenAt ? 'hidden' : 'visible')).trim() === 'hidden' ? 'hidden' : 'visible';
+  return {
+    id,
+    postId,
+    parentId: parentIdRaw || null,
+    name: String(entry.name || '').trim().slice(0, 40) || 'Anonim',
+    text: String(entry.text || '').trim().slice(0, 2400),
+    gifUrl: validatePublicUrl(entry.gifUrl),
+    stickerUrl: validatePublicUrl(entry.stickerUrl),
+    imageDataUrl: validatePublicUrl(entry.imageDataUrl),
+    createdAt: String(entry.createdAt || '').trim() || nowIso(),
+    status,
+    hiddenAt,
+    hiddenReason: String(entry.hiddenReason || '').trim().slice(0, 160),
+    moderatedAt: String(entry.moderatedAt || '').trim() || null,
+    moderationLabels: Array.isArray(entry.moderationLabels) ? entry.moderationLabels.map((label) => String(label || '').trim()).filter(Boolean).slice(0, 8) : [],
+    moderationEdited: Boolean(entry.moderationEdited)
+  };
+}
+function repairStoryCommentsDb(db) {
+  const base = defaultStoryCommentsDb();
+  const comments = Array.isArray(db?.comments) ? db.comments.map(normalizeStoredComment).filter(Boolean) : [];
+  const seen = new Set();
+  const deduped = [];
+  for (const comment of comments) {
+    if (seen.has(comment.id)) continue;
+    seen.add(comment.id);
+    deduped.push(comment);
+  }
+  const validIds = new Set(deduped.map((comment) => comment.id));
+  for (const comment of deduped) {
+    if (comment.parentId && !validIds.has(comment.parentId)) comment.parentId = null;
+  }
+  deduped.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+  return {
+    meta: {
+      ...base.meta,
+      ...(db?.meta && typeof db.meta === 'object' ? db.meta : {}),
+      updatedAt: nowIso(),
+      backupAt: nowIso()
+    },
+    comments: deduped
+  };
+}
+function loadItemsDb() { return readJson(ITEMS_DB_PATH, defaultItemsDb) || defaultItemsDb(); }
+function saveItemsDb(db) { writeJson(ITEMS_DB_PATH, db); }
+function loadPostsDb() { return readJson(POSTS_DB_PATH, defaultPostsDb) || defaultPostsDb(); }
+function savePostsDb(db) { writeJson(POSTS_DB_PATH, db); }
+function loadActivityDb() { return readJson(ACTIVITY_DB_PATH, defaultActivityDb) || defaultActivityDb(); }
+function saveActivityDb(db) { writeJson(ACTIVITY_DB_PATH, db); }
+function loadAnalyticsDb() { return readJson(ANALYTICS_DB_PATH, defaultAnalyticsDb) || defaultAnalyticsDb(); }
+function saveAnalyticsDb(db) { writeJson(ANALYTICS_DB_PATH, db); }
+function loadStoryCommentsDb() {
+  const repaired = repairStoryCommentsDb(readJson(STORY_COMMENTS_DB_PATH, defaultStoryCommentsDb));
+  if (!fs.existsSync(STORY_COMMENTS_DB_PATH)) writeJson(STORY_COMMENTS_DB_PATH, repaired);
+  return repaired;
+}
+function saveStoryCommentsDb(db) {
+  const repaired = repairStoryCommentsDb(db);
+  writeJson(STORY_COMMENTS_DB_PATH, repaired);
+  writeJson(path.join(ROOT, 'db', 'story-comments.backup.json'), repaired);
+}
+function parseBool(value) { return value === '1' || value === 'true'; }
+function slugify(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 90);
+}
+function pushActivity(event) {
+  const db = loadActivityDb();
+  db.events.unshift({ id: crypto.randomUUID(), at: nowIso(), ...event });
+  db.events = db.events.slice(0, 500);
+  saveActivityDb(db);
+}
+function send(res, status, body, headers = {}) {
+  res.writeHead(status, {
+    'Cache-Control': headers['Cache-Control'] || 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    ...headers
+  });
+  res.end(body);
+}
+function json(res, status, data, headers = {}) {
+  send(res, status, JSON.stringify(data), { 'Content-Type': 'application/json; charset=utf-8', ...headers });
+}
+function notFound(res) { json(res, 404, { error: 'Not Found' }); }
+function unauthorized(res, message = 'Admin token tidak valid.') { json(res, 401, { error: message }); }
+function badRequest(res, message = 'Request tidak valid.') { json(res, 400, { error: message }); }
+function methodNotAllowed(res) { json(res, 405, { error: 'Method not allowed.' }); }
+function getAuthToken(req) {
+  const auth = String(req.headers.authorization || '');
+  return auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+}
+function requireAdmin(req, res) {
+  if (!WRITE_PROTECTED) return true;
+  const token = getAuthToken(req);
+  if (!token || token !== ADMIN_TOKEN) {
+    unauthorized(res, 'Mode aman aktif. Masukkan admin token yang benar untuk mengubah data.');
+    return false;
+  }
+  return true;
+}
+function limited(req, res, max) {
+  const ip = req.socket.remoteAddress || 'local';
+  const bucketKey = `${req.method}:${ip}`;
+  const now = Date.now();
+  const bucket = rateBuckets.get(bucketKey);
+  if (!bucket || now - bucket.start > RATE_WINDOW_MS) {
+    rateBuckets.set(bucketKey, { start: now, count: 1 });
+    return false;
+  }
+  bucket.count += 1;
+  if (bucket.count > max) {
+    json(res, 429, { error: 'Terlalu banyak request. Coba lagi sebentar.' });
+    return true;
+  }
+  return false;
+}
+async function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', (chunk) => {
+      raw += chunk;
+      if (raw.length > 256 * 1024) {
+        reject(new Error('Payload terlalu besar.'));
+        req.destroy();
+      }
+    });
+    req.on('end', () => resolve(raw));
+    req.on('error', reject);
+  });
+}
+async function readJsonBody(req, res) {
+  const type = String(req.headers['content-type'] || '');
+  if (!type.includes('application/json')) {
+    json(res, 415, { error: 'Gunakan application/json.' });
+    return null;
+  }
+  try {
+    const raw = await readBody(req);
+    return raw ? JSON.parse(raw) : {};
+  } catch (error) {
+    badRequest(res, error.message || 'JSON tidak valid.');
+    return null;
+  }
+}
+function normalizeYoutubeUrl(url) {
+  if (!url || typeof url !== 'string') return { valid: false, reason: 'URL kosong.' };
+  const value = url.trim();
+  let parsed;
+  try { parsed = new URL(value); } catch { return { valid: false, reason: 'Format URL tidak valid.' }; }
+  const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
+  const allowedHosts = new Set(['youtube.com', 'm.youtube.com', 'youtu.be', 'youtube-nocookie.com']);
+  if (!allowedHosts.has(host)) return { valid: false, reason: 'Hanya link YouTube resmi yang diizinkan.' };
+  let videoId = '';
+  if (host === 'youtu.be') videoId = parsed.pathname.split('/').filter(Boolean)[0] || '';
+  else if (parsed.pathname === '/watch') videoId = parsed.searchParams.get('v') || '';
+  else if (parsed.pathname.startsWith('/shorts/')) videoId = parsed.pathname.split('/')[2] || '';
+  else if (parsed.pathname.startsWith('/embed/')) videoId = parsed.pathname.split('/')[2] || '';
+  if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return { valid: false, reason: 'Video ID YouTube tidak valid.' };
+  return {
+    valid: true,
+    videoId,
+    watchUrl: `https://www.youtube.com/watch?v=${videoId}`,
+    embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1`
+  };
+}
+
+function normalizeExternalUrl(url) {
+  const value = String(url || '').trim();
+  if (!value) return { valid: true, value: '', domain: '' };
+  let parsed;
+  try { parsed = new URL(value); } catch { return { valid: false, reason: 'Link website tidak valid.' }; }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { valid: false, reason: 'Link website harus memakai http:// atau https://.' };
+  }
+  return {
+    valid: true,
+    value: parsed.toString(),
+    domain: parsed.hostname.replace(/^www\./i, '').toLowerCase()
+  };
+}
+function customizableItemCategories() {
+  return new Set(['home', 'tanaman', 'hewan', 'teknologi', 'world', 'studio', 'news', 'commerce', 'azka']);
+}
+function rebuildItemStats(db) {
+  db.stats = db.items.reduce((acc, item) => {
+    acc[item.category] = (acc[item.category] || 0) + 1;
+    return acc;
+  }, {});
+  return db;
+}
+
+function createDefaultFooterDb() {
+  return {
+    meta: {
+      name: 'PulseBoard Footer Socials',
+      createdAt: nowIso(),
+      description: 'Permanent footer social media links for PulseBoard Fusion.'
+    },
+    socials: [
+      { id: 'linkedin', name: 'LinkedIn', icon: 'in', href: 'https://www.linkedin.com/in/roberto-laksmana-4403631b5/' },
+      { id: 'hashnode', name: 'Hashnode', icon: '#', href: 'https://hashnode.com/@robertolaksmana' },
+      { id: 'github', name: 'GitHub', icon: 'GH', href: 'https://github.com/yirassssindaba-coder' },
+      { id: 'stackoverflow', name: 'Stack Overflow', icon: 'SO', href: 'http://stackoverflow.com/users/32567239/roberto-ocaviantyo-tahta-laksm' },
+      { id: 'kaggle', name: 'Kaggle', icon: 'K', href: 'https://www.kaggle.com/robertolaksmana' },
+      { id: 'x', name: 'X', icon: 'X', href: 'https://x.com/yirasss40218' },
+      { id: 'youtube', name: 'YouTube', icon: '▶', href: 'https://www.youtube.com/@demon_child2026' }
+    ]
+  };
+}
+function ensureFooterDb() {
+  if (!fs.existsSync(FOOTER_DB_PATH)) {
+    fs.writeFileSync(FOOTER_DB_PATH, JSON.stringify(createDefaultFooterDb(), null, 2));
+  }
+}
+function normalizeFooterSocialEntry(entry, fallbackIndex = 0) {
+  const name = String(entry?.name || '').trim();
+  if (!name) return null;
+  const hrefInfo = normalizeExternalUrl(entry?.href || '');
+  if (!hrefInfo.valid || !hrefInfo.value) return null;
+  const icon = String(entry?.icon || name.slice(0, 2).toUpperCase()).trim().slice(0, 160);
+  const id = String(entry?.id || `${slugify(name) || 'social'}-${fallbackIndex + 1}`).trim();
+  return { id, name, icon, href: hrefInfo.value };
+}
+function loadFooterDb() {
+  ensureFooterDb();
+  try {
+    const parsed = JSON.parse(fs.readFileSync(FOOTER_DB_PATH, 'utf8'));
+    return {
+      meta: parsed.meta || createDefaultFooterDb().meta,
+      socials: Array.isArray(parsed.socials) ? parsed.socials.map(normalizeFooterSocialEntry).filter(Boolean) : createDefaultFooterDb().socials
+    };
+  } catch {
+    const fallback = createDefaultFooterDb();
+    fs.writeFileSync(FOOTER_DB_PATH, JSON.stringify(fallback, null, 2));
+    return fallback;
+  }
+}
+function saveFooterDb(db) {
+  fs.writeFileSync(FOOTER_DB_PATH, JSON.stringify(db, null, 2));
+}
+
+function summarizePosts(posts) {
+  const active = posts.filter((post) => !post.deletedAt);
+  return {
+    total: active.length,
+    published: active.filter((p) => p.status === 'published').length,
+    drafts: active.filter((p) => p.status === 'draft').length,
+    review: active.filter((p) => p.status === 'review').length,
+    archived: active.filter((p) => p.status === 'archived').length
+  };
+}
+
+function validatePublicUrl(value) {
+  if (!value) return '';
+  const raw = String(value).trim();
+  if (raw.startsWith('data:image/')) return raw;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+}
+const COMMENT_REDACTION_PATTERNS = [
+  { label: 'profanity', regex: /\b(anjing|bangsat|bajingan|tolol|goblok|idiot|kampret|fuck|shit|bitch|asshole)\b/gi, replacement: '***' },
+  { label: 'explicit', regex: /\b(kontol|memek|ngentot|tai)\b/gi, replacement: '[disunting]' },
+  { label: 'spam-link', regex: /(https?:\/\/\S+\s*){2,}/gi, replacement: '[tautan disembunyikan] ' },
+  { label: 'spam-contact', regex: /\b(dm me|chat me|hubungi saya|kontak saya|telegram|whatsapp)\b/gi, replacement: '[ajakan kontak dihapus]' }
+];
+
+function moderateCommentText(input) {
+  let text = String(input || '').trim().slice(0, 2400);
+  const labels = new Set();
+  let edited = false;
+
+  for (const rule of COMMENT_REDACTION_PATTERNS) {
+    if (!rule.regex.test(text)) continue;
+    labels.add(rule.label);
+    text = text.replace(rule.regex, () => {
+      edited = true;
+      return rule.replacement;
+    });
+    rule.regex.lastIndex = 0;
+  }
+
+  if (/(.)\1{8,}/.test(text)) {
+    labels.add('repetition');
+    text = text.replace(/(.)\1{8,}/g, '$1$1$1');
+    edited = true;
+  }
+
+  const stripped = text.replace(/\[(?:disunting|tautan disembunyikan|ajakan kontak dihapus)\]/gi, ' ').replace(/\*+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!stripped && text) {
+    text = 'Komentar disunting otomatis karena mengandung kata yang mengganggu.';
+    labels.add('auto-redacted');
+    edited = true;
+  }
+
+  text = text.replace(/\s+/g, ' ').trim();
+  return { text, labels: Array.from(labels), edited };
+}
+
+function sanitizeCommentBody(body) {
+  const moderated = moderateCommentText(body.text || '');
+  const name = String(body.name || '').trim().slice(0, 40);
+  const gifUrl = validatePublicUrl(body.gifUrl);
+  const stickerUrl = validatePublicUrl(body.stickerUrl);
+  const imageDataUrl = validatePublicUrl(body.imageDataUrl);
+  return {
+    postId: String(body.postId || '').trim(),
+    parentId: String(body.parentId || '').trim() || null,
+    name,
+    text: moderated.text,
+    gifUrl,
+    stickerUrl,
+    imageDataUrl,
+    moderationLabels: moderated.labels,
+    moderationEdited: moderated.edited
+  };
+}
+
+function buildCommentTree(comments) {
+  const byParent = new Map();
+  for (const comment of comments) {
+    const key = comment.parentId || 'root';
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key).push({ ...comment, replies: [] });
+  }
+  const attach = (items) => items.map((item) => ({
+    ...item,
+    replies: attach((byParent.get(item.id) || []).sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)))
+  }));
+  return attach((byParent.get('root') || []).sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)));
+}
+
+function filterSortPosts(posts, query) {
+  const q = String(query.get('q') || '').trim().toLowerCase();
+  const category = String(query.get('category') || '').trim().toLowerCase();
+  const status = String(query.get('status') || '').trim().toLowerCase();
+  const featured = String(query.get('featured') || '').trim();
+  const includeDeleted = parseBool(query.get('includeDeleted') || '');
+  const sort = String(query.get('sort') || 'updated_desc');
+  let out = posts.slice();
+  if (!includeDeleted) out = out.filter((p) => !p.deletedAt);
+  if (q) {
+    out = out.filter((p) => [p.title, p.excerpt, p.content, p.slug, p.author, ...(p.tags || [])].join(' ').toLowerCase().includes(q));
+  }
+  if (category) out = out.filter((p) => p.category === category);
+  if (status) out = out.filter((p) => p.status === status);
+  if (featured === '1') out = out.filter((p) => !!p.featured);
+  const sorters = {
+    updated_desc: (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0),
+    created_desc: (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+    title_asc: (a, b) => String(a.title).localeCompare(String(b.title)),
+    status_asc: (a, b) => String(a.status).localeCompare(String(b.status))
+  };
+  out.sort(sorters[sort] || sorters.updated_desc);
+  return out;
+}
+
+function tryStatic(reqPath) {
+  const mapped = STATIC_ROUTES.get(reqPath);
+  const relative = mapped || reqPath.replace(/^\/+/, '');
+  const decoded = decodeURIComponent(relative);
+  const filePath = path.resolve(ROOT, decoded);
+  if (!filePath.startsWith(ROOT)) return null;
+  if (!fs.existsSync(filePath)) return null;
+  if (fs.statSync(filePath).isDirectory()) {
+    const indexPath = path.join(filePath, 'index.html');
+    return fs.existsSync(indexPath) ? indexPath : null;
+  }
+  return filePath;
+}
+function serveStatic(res, filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const contentType = MIME[ext] || 'application/octet-stream';
+  const body = fs.readFileSync(filePath);
+  send(res, 200, body, { 'Content-Type': contentType, 'Cache-Control': ext === '.html' || ext === '.json' ? 'no-store' : 'public, max-age=300' });
+}
+
+
+function normalizeAnalyticsEvent(event) {
+  if (!event || typeof event !== 'object') return null;
+  const type = String(event.type || '').trim().toLowerCase().slice(0, 60);
+  if (!type) return null;
+  const atRaw = event.at || event.timestamp || nowIso();
+  const at = Number.isNaN(new Date(atRaw).getTime()) ? nowIso() : new Date(atRaw).toISOString();
+  return {
+    id: String(event.id || crypto.randomUUID()).trim() || crypto.randomUUID(),
+    at,
+    type,
+    page: String(event.page || '').trim().toLowerCase().slice(0, 50) || 'unknown',
+    path: String(event.path || '').trim().slice(0, 120) || '/',
+    visitorId: String(event.visitorId || '').trim().slice(0, 120) || 'anonymous',
+    sessionId: String(event.sessionId || '').trim().slice(0, 120) || 'session',
+    referrer: String(event.referrer || '').trim().slice(0, 240),
+    label: String(event.label || event.title || '').trim().slice(0, 180),
+    href: String(event.href || '').trim().slice(0, 260),
+    component: String(event.component || '').trim().slice(0, 120),
+    message: String(event.message || '').trim().slice(0, 240),
+    userAgent: String(event.userAgent || '').trim().slice(0, 320),
+    language: String(event.language || '').trim().slice(0, 40),
+    timezone: String(event.timezone || '').trim().slice(0, 80),
+    device: String(event.device || '').trim().toLowerCase().slice(0, 20),
+    scrollDepth: Math.max(0, Math.min(100, Number(event.scrollDepth || 0) || 0)),
+    durationMs: Math.max(0, Number(event.durationMs || 0) || 0),
+    navType: String(event.navType || '').trim().slice(0, 40),
+    screenWidth: Math.max(0, Number(event.screenWidth || 0) || 0),
+    screenHeight: Math.max(0, Number(event.screenHeight || 0) || 0),
+    viewportWidth: Math.max(0, Number(event.viewportWidth || 0) || 0),
+    viewportHeight: Math.max(0, Number(event.viewportHeight || 0) || 0),
+    source: String(event.source || '').trim().slice(0, 120),
+    line: Math.max(0, Number(event.line || 0) || 0),
+    column: Math.max(0, Number(event.column || 0) || 0)
+  };
+}
+function inferTrafficSource(referrer) {
+  const raw = String(referrer || '').trim();
+  if (!raw) return 'Direct';
+  try {
+    const host = new URL(raw).hostname.replace(/^www\./i, '').toLowerCase();
+    if (host.includes('google.')) return 'Google';
+    if (host.includes('youtube.com') || host.includes('youtu.be')) return 'YouTube';
+    if (host.includes('github.com')) return 'GitHub';
+    if (host.includes('linkedin.com')) return 'LinkedIn';
+    if (host.includes('x.com') || host.includes('twitter.com')) return 'X';
+    if (host.includes('wa.me') || host.includes('whatsapp')) return 'WhatsApp';
+    return host;
+  } catch {
+    return 'Referral';
+  }
+}
+function inferDeviceType(value, userAgent) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'mobile' || raw === 'tablet' || raw === 'desktop') return raw;
+  const ua = String(userAgent || '').toLowerCase();
+  if (/ipad|tablet/.test(ua)) return 'tablet';
+  if (/mobi|android|iphone/.test(ua)) return 'mobile';
+  return 'desktop';
+}
+function toDateKey(value) {
+  const d = new Date(value || 0);
+  return Number.isNaN(d.getTime()) ? nowIso().slice(0, 10) : d.toISOString().slice(0, 10);
+}
+function buildDateKeys(days) {
+  const out = [];
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  start.setUTCDate(start.getUTCDate() - (days - 1));
+  for (let i = 0; i < days; i += 1) {
+    const d = new Date(start);
+    d.setUTCDate(start.getUTCDate() + i);
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+}
+function countBy(items, keyFn) {
+  const map = new Map();
+  for (const item of items || []) {
+    const key = keyFn(item);
+    if (!key) continue;
+    map.set(key, (map.get(key) || 0) + 1);
+  }
+  return map;
+}
+function seriesFromCounts(keys, counts) {
+  return keys.map((key) => ({ date: key, value: counts.get(key) || 0 }));
+}
+function seriesFromSetCounts(keys, events, dateFn, idFn) {
+  return keys.map((key) => {
+    const set = new Set();
+    for (const event of events || []) {
+      if (dateFn(event) !== key) continue;
+      const id = idFn(event);
+      if (id) set.add(id);
+    }
+    return { date: key, value: set.size };
+  });
+}
+function topRowsFromMap(map, limit = 8) {
+  return [...map.entries()]
+    .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+    .slice(0, limit)
+    .map(([label, value]) => ({ label, value }));
+}
+function pct(value) {
+  return `${Math.round(Number(value || 0) * 10) / 10}%`;
+}
+function summarizeAnalytics() {
+  const analyticsDb = loadAnalyticsDb();
+  const itemsDb = loadItemsDb();
+  const postsDb = loadPostsDb();
+  const activityDb = loadActivityDb();
+  const commentsDb = loadStoryCommentsDb();
+  const events = (analyticsDb.events || []).map(normalizeAnalyticsEvent).filter(Boolean).sort((a, b) => new Date(a.at || 0) - new Date(b.at || 0));
+  const pageViews = events.filter((event) => event.type === 'page_view');
+  const clicks = events.filter((event) => /_click$/.test(event.type) || event.type === 'cta_click');
+  const videoClicks = events.filter((event) => event.type === 'video_click');
+  const errors = events.filter((event) => event.type === 'error');
+  const scrollEvents = events.filter((event) => event.type === 'scroll_depth');
+  const todayKey = toDateKey(nowIso());
+  const last14 = buildDateKeys(14);
+  const last7 = buildDateKeys(7);
+  const visitorSet = new Set(pageViews.map((event) => event.visitorId).filter(Boolean));
+  const sessions = new Set(pageViews.map((event) => event.sessionId).filter(Boolean));
+  const todayVisitors = new Set(pageViews.filter((event) => toDateKey(event.at) === todayKey).map((event) => event.visitorId).filter(Boolean));
+  const onlineNow = new Set(events.filter((event) => Date.now() - new Date(event.at || 0).getTime() < 5 * 60 * 1000).map((event) => event.sessionId).filter(Boolean));
+  const latestScrollBySession = new Map();
+  for (const event of scrollEvents) {
+    const key = event.sessionId || event.visitorId || event.id;
+    latestScrollBySession.set(key, Math.max(latestScrollBySession.get(key) || 0, Number(event.scrollDepth || 0)));
+  }
+  const avgScrollDepth = latestScrollBySession.size ? [...latestScrollBySession.values()].reduce((sum, value) => sum + value, 0) / latestScrollBySession.size : 0;
+  const sessionDurations = new Map();
+  for (const event of events) {
+    const key = event.sessionId || event.visitorId || event.id;
+    const current = sessionDurations.get(key) || { start: event.at, end: event.at };
+    if (new Date(event.at).getTime() < new Date(current.start).getTime()) current.start = event.at;
+    if (new Date(event.at).getTime() > new Date(current.end).getTime()) current.end = event.at;
+    sessionDurations.set(key, current);
+  }
+  const avgSessionDuration = sessionDurations.size
+    ? [...sessionDurations.values()].reduce((sum, value) => sum + Math.max(0, new Date(value.end).getTime() - new Date(value.start).getTime()), 0) / sessionDurations.size
+    : 0;
+  const pageMap = countBy(pageViews, (event) => event.page || event.path || 'unknown');
+  const sourceMap = countBy(pageViews, (event) => inferTrafficSource(event.referrer));
+  const deviceMap = countBy(pageViews, (event) => inferDeviceType(event.device, event.userAgent));
+  const pagesPerSession = sessions.size ? pageViews.length / sessions.size : 0;
+  const sessionsWithInteraction = new Set(clicks.map((event) => event.sessionId).filter(Boolean));
+  const bounceSessions = [...sessions].filter((sessionId) => !sessionsWithInteraction.has(sessionId)).length;
+  const bounceRate = sessions.size ? (bounceSessions / sessions.size) * 100 : 0;
+  const postEntries = postsDb.posts || [];
+  const activePosts = postEntries.filter((post) => !post.deletedAt && post.status === 'published').length;
+  const draftPosts = postEntries.filter((post) => !post.deletedAt && post.status === 'draft').length;
+  const deletedPosts = postEntries.filter((post) => !!post.deletedAt).length;
+  const comments = (commentsDb.comments || []).filter((comment) => comment.status !== 'hidden' && !comment.hiddenAt);
+  const rootComments = comments.filter((comment) => !comment.parentId);
+  const replies = comments.filter((comment) => !!comment.parentId);
+  const commentCountMap = countBy(rootComments, (entry) => toDateKey(entry.createdAt));
+  const replyCountMap = countBy(replies, (entry) => toDateKey(entry.createdAt));
+  const pageViewMap = countBy(pageViews, (entry) => toDateKey(entry.at));
+  const uniqueVisitorSeries = seriesFromSetCounts(last14, pageViews, (entry) => toDateKey(entry.at), (entry) => entry.visitorId);
+  const returningVisitorSeries = last14.map((key) => {
+    const before = new Set(pageViews.filter((entry) => toDateKey(entry.at) < key).map((entry) => entry.visitorId));
+    const set = new Set(pageViews.filter((entry) => toDateKey(entry.at) === key).map((entry) => entry.visitorId).filter((id) => before.has(id)));
+    return { date: key, value: set.size };
+  });
+  const engagementMap = countBy(clicks, (entry) => toDateKey(entry.at));
+  const videoMap = countBy(videoClicks, (entry) => toDateKey(entry.at));
+  const errorMap = countBy(errors, (entry) => toDateKey(entry.at));
+  const createdPostMap = countBy(postEntries.filter((post) => !post.deletedAt), (post) => toDateKey(post.createdAt));
+  const deletedPostMap = countBy(postEntries.filter((post) => !!post.deletedAt), (post) => toDateKey(post.deletedAt));
+  const activeTotalMap = new Map();
+  let runningActive = 0;
+  for (const key of last14) {
+    runningActive += createdPostMap.get(key) || 0;
+    runningActive -= deletedPostMap.get(key) || 0;
+    activeTotalMap.set(key, Math.max(0, runningActive));
+  }
+  const trafficSources = topRowsFromMap(sourceMap, 6);
+  const deviceUsage = topRowsFromMap(deviceMap, 5);
+  const topPages = topRowsFromMap(pageMap, 8).map((row) => ({ label: row.label, value: row.value }));
+  const pageViewsBySection = topRowsFromMap(pageMap, 8);
+  const commentTargets = countBy(rootComments, (entry) => entry.postId);
+  const replyTargets = countBy(replies, (entry) => entry.postId);
+  const videoTargets = countBy(videoClicks, (entry) => entry.label || entry.page || 'Video');
+  const ctaCtrSeries = last14.map((key) => {
+    const views = pageViewMap.get(key) || 0;
+    const clicksCount = engagementMap.get(key) || 0;
+    return { date: key, value: views ? Math.round((clicksCount / views) * 1000) / 10 : 0 };
+  });
+  const commentPlusReply = last14.map((key) => ({ date: key, value: (commentCountMap.get(key) || 0) + (replyCountMap.get(key) || 0) }));
+  const charts = {
+    visitorsPerDay: seriesFromCounts(last14, pageViewMap),
+    uniqueVisitorsPerDay: uniqueVisitorSeries,
+    returningVisitorsPerDay: returningVisitorSeries,
+    engagementPerDay: seriesFromCounts(last14, engagementMap),
+    postsCreatedPerDay: seriesFromCounts(last14, createdPostMap),
+    postsDeletedPerDay: seriesFromCounts(last14, deletedPostMap),
+    netPostGrowth: last14.map((key) => ({ date: key, value: (createdPostMap.get(key) || 0) - (deletedPostMap.get(key) || 0) })),
+    activePostsTotal: seriesFromCounts(last14, activeTotalMap),
+    commentsPerDay: seriesFromCounts(last14, commentCountMap),
+    repliesPerDay: seriesFromCounts(last14, replyCountMap),
+    commentsAndReplies: commentPlusReply,
+    videoPlaysPerDay: seriesFromCounts(last14, videoMap),
+    trafficSources,
+    deviceUsage,
+    pageViewsBySection,
+    ctaCtrPerDay: ctaCtrSeries,
+    errorRatePerDay: seriesFromCounts(last14, errorMap),
+    topPages,
+    topVideos: topRowsFromMap(videoTargets, 6),
+    topCommented: topRowsFromMap(commentTargets, 6),
+    replyTargets: topRowsFromMap(replyTargets, 6)
+  };
+  return {
+    generatedAt: nowIso(),
+    kpis: {
+      totalVisitors: visitorSet.size,
+      todayVisitors: todayVisitors.size,
+      visitors7Days: new Set(pageViews.filter((entry) => last7.includes(toDateKey(entry.at))).map((entry) => entry.visitorId)).size,
+      visitors30Days: visitorSet.size,
+      totalPageViews: pageViews.length,
+      uniquePageViews: visitorSet.size,
+      activePosts,
+      draftPosts,
+      deletedPosts,
+      totalComments: rootComments.length,
+      totalReplies: replies.length,
+      videoViews: videoClicks.length,
+      avgSessionDurationMs: Math.round(avgSessionDuration),
+      avgSessionDurationLabel: `${Math.max(0, Math.round(avgSessionDuration / 1000))} dtk`,
+      bounceRate: Math.round(bounceRate * 10) / 10,
+      onlineNow: onlineNow.size,
+      sessions: sessions.size,
+      pagesPerSession: Math.round(pagesPerSession * 10) / 10,
+      avgScrollDepth: Math.round(avgScrollDepth),
+      errorEvents: errors.length,
+      ctaClicks: clicks.length
+    },
+    charts,
+    content: {
+      videosActive: (itemsDb.items || []).filter((item) => item.videoId).length,
+      videosMissing: (itemsDb.items || []).filter((item) => !item.videoId).length,
+      customCards: (itemsDb.items || []).filter((item) => item.isCustom).length,
+      openingReels: (itemsDb.items || []).filter((item) => item.isOpeningReel).length,
+      publishedPosts: postEntries.filter((post) => !post.deletedAt && post.status === 'published').length,
+      archivedPosts: postEntries.filter((post) => !post.deletedAt && post.status === 'archived').length
+    },
+    notes: {
+      trafficTracking: events.length
+        ? 'Tracking live aktif. KPI visitor, CTA, video, scroll depth, dan error kini berasal dari interaksi yang benar-benar terekam di website.'
+        : 'Tracking live sudah aktif. Grafik visitor dan engagement akan mulai terisi otomatis saat pengunjung membuka dan memakai website.'
+    },
+    topPages,
+    trafficSources,
+    audit: (activityDb.events || []).slice(0, 20)
+  };
+}
+function analyticsSummaryToCsv(summary) {
+  const rows = [
+    ['Metric', 'Value'],
+    ['Total visitors', summary.kpis.totalVisitors],
+    ['Visitors today', summary.kpis.todayVisitors],
+    ['Page views', summary.kpis.totalPageViews],
+    ['Active posts', summary.kpis.activePosts],
+    ['Draft posts', summary.kpis.draftPosts],
+    ['Deleted posts', summary.kpis.deletedPosts],
+    ['Comments', summary.kpis.totalComments],
+    ['Replies', summary.kpis.totalReplies],
+    ['Video views', summary.kpis.videoViews],
+    ['Sessions', summary.kpis.sessions],
+    ['Bounce rate', summary.kpis.bounceRate],
+    ['Pages per session', summary.kpis.pagesPerSession],
+    ['Average scroll depth', summary.kpis.avgScrollDepth]
+  ];
+  rows.push([]);
+  rows.push(['Date', 'Visitors', 'Engagement', 'Posts created', 'Posts deleted', 'Comments', 'Replies', 'Video plays', 'CTA CTR %', 'Errors']);
+  for (let i = 0; i < summary.charts.visitorsPerDay.length; i += 1) {
+    rows.push([
+      summary.charts.visitorsPerDay[i].date,
+      summary.charts.visitorsPerDay[i].value,
+      summary.charts.engagementPerDay[i]?.value || 0,
+      summary.charts.postsCreatedPerDay[i]?.value || 0,
+      summary.charts.postsDeletedPerDay[i]?.value || 0,
+      summary.charts.commentsPerDay[i]?.value || 0,
+      summary.charts.repliesPerDay[i]?.value || 0,
+      summary.charts.videoPlaysPerDay[i]?.value || 0,
+      summary.charts.ctaCtrPerDay[i]?.value || 0,
+      summary.charts.errorRatePerDay[i]?.value || 0
+    ]);
+  }
+  return rows.map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(',')).join('\n');
+}
+function analyticsSummaryToHtml(summary) {
+  const metricRows = [
+    ['Total visitors', summary.kpis.totalVisitors],
+    ['Visitors today', summary.kpis.todayVisitors],
+    ['Page views', summary.kpis.totalPageViews],
+    ['Active posts', summary.kpis.activePosts],
+    ['Comments', summary.kpis.totalComments],
+    ['Replies', summary.kpis.totalReplies],
+    ['Video views', summary.kpis.videoViews],
+    ['Sessions', summary.kpis.sessions],
+    ['Bounce rate', pct(summary.kpis.bounceRate)],
+    ['Average scroll depth', pct(summary.kpis.avgScrollDepth)]
+  ].map(([label, value]) => `<tr><th>${label}</th><td>${value}</td></tr>`).join('');
+  const topPageRows = (summary.topPages || []).map((row) => `<tr><th>${row.label}</th><td>${row.value}</td></tr>`).join('') || '<tr><td colspan="2">Belum ada data halaman.</td></tr>';
+  const sourceRows = (summary.trafficSources || []).map((row) => `<tr><th>${row.label}</th><td>${row.value}</td></tr>`).join('') || '<tr><td colspan="2">Belum ada data sumber trafik.</td></tr>';
+  return `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>PulseBoard Analytics Report</title><style>body{font-family:Inter,Arial,sans-serif;background:#0d0907;color:#f4ede2;margin:0;padding:32px}h1,h2{margin:0 0 14px}section{margin-top:24px;padding:24px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02))}table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left}th{width:38%;color:#e7bf86}.eyebrow{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:#b89658;margin-bottom:10px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}@media(max-width:900px){.grid{grid-template-columns:1fr}}</style></head><body><div class="eyebrow">PulseBoard analytics export</div><h1>Analytics Studio Report</h1><p>Dibuat pada ${summary.generatedAt}. Laporan ini merangkum visitor, konten, komentar, video, dan aktivitas studio yang sedang terekam.</p><div class="grid"><section><div class="eyebrow">Overview</div><table>${metricRows}</table></section><section><div class="eyebrow">Traffic source</div><table>${sourceRows}</table></section></div><section><div class="eyebrow">Top pages</div><table>${topPageRows}</table></section></body></html>`;
+}
+
+async function handleApi(req, res, urlObj) {
+  const pathname = urlObj.pathname;
+
+  if (pathname === '/api/health' && req.method === 'GET') {
+    return json(res, 200, { ok: true, service: 'pulseboard', now: nowIso() });
+  }
+  if (pathname === '/api/status' && req.method === 'GET') {
+    const itemsDb = loadItemsDb();
+    const postsDb = loadPostsDb();
+    return json(res, 200, {
+      service: 'pulseboard-dashboard',
+      status: 'online',
+      writeProtected: WRITE_PROTECTED,
+      items: itemsDb.items.length,
+      posts: summarizePosts(postsDb.posts),
+      now: nowIso()
+    });
+  }
+  if (pathname === '/api/openapi' && req.method === 'GET') {
+    return serveStatic(res, OPENAPI_PATH);
+  }
+  if (pathname === '/api/meta' && req.method === 'GET') {
+    const db = loadItemsDb();
+    const postsDb = loadPostsDb();
+    const byCategory = db.items.reduce((acc, item) => {
+      acc[item.category] = acc[item.category] || { total: 0, withVideo: 0 };
+      acc[item.category].total += 1;
+      if (item.videoId) acc[item.category].withVideo += 1;
+      return acc;
+    }, {});
+    return json(res, 200, {
+      meta: db.meta,
+      byCategory,
+      stats: db.stats || {},
+      posts: summarizePosts(postsDb.posts),
+      security: { writeProtected: WRITE_PROTECTED, writeAccess: WRITE_PROTECTED ? 'token-required' : 'open' }
+    });
+  }
+  if (pathname === '/api/footer' && req.method === 'GET') {
+    const db = loadFooterDb();
+    return json(res, 200, db);
+  }
+  if (pathname === '/api/footer/socials' && req.method === 'GET') {
+    const db = loadFooterDb();
+    return json(res, 200, { socials: db.socials });
+  }
+  if (pathname === '/api/footer/socials' && req.method === 'POST') {
+    if (limited(req, res, 30) || !requireAdmin(req, res)) return;
+    const body = await readJsonBody(req, res); if (!body) return;
+    const db = loadFooterDb();
+    const social = normalizeFooterSocialEntry(body, db.socials.length);
+    if (!social) return badRequest(res, 'Nama, logo, dan link social media wajib valid.');
+    let baseId = social.id || slugify(social.name) || `social-${db.socials.length + 1}`;
+    let nextId = baseId;
+    let suffix = 2;
+    while (db.socials.some((entry) => entry.id === nextId)) nextId = `${baseId}-${suffix++}`;
+    social.id = nextId;
+    db.socials.push(social);
+    saveFooterDb(db);
+    pushActivity({ type: 'create-footer-social', entity: 'footer-social', entityId: social.id, message: `Social media ${social.name} ditambahkan ke footer.` });
+    return json(res, 201, { social, socials: db.socials, message: 'Social media berhasil ditambahkan permanen ke footer.' });
+  }
+  if (pathname.match(/^\/api\/footer\/socials\/[^/]+$/) && req.method === 'PATCH') {
+    if (limited(req, res, 30) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[4];
+    const body = await readJsonBody(req, res); if (!body) return;
+    const db = loadFooterDb();
+    const index = db.socials.findIndex((entry) => entry.id === id);
+    if (index < 0) return json(res, 404, { error: 'Social media tidak ditemukan.' });
+    const social = normalizeFooterSocialEntry({ ...db.socials[index], ...body, id }, index);
+    if (!social) return badRequest(res, 'Nama, logo, dan link social media wajib valid.');
+    db.socials[index] = social;
+    saveFooterDb(db);
+    pushActivity({ type: 'update-footer-social', entity: 'footer-social', entityId: social.id, message: `Social media ${social.name} diperbarui.` });
+    return json(res, 200, { social, socials: db.socials, message: 'Social media footer berhasil diperbarui.' });
+  }
+  if (pathname.match(/^\/api\/footer\/socials\/[^/]+$/) && req.method === 'DELETE') {
+    if (limited(req, res, 30) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[4];
+    const db = loadFooterDb();
+    const index = db.socials.findIndex((entry) => entry.id === id);
+    if (index < 0) return json(res, 404, { error: 'Social media tidak ditemukan.' });
+    const [removed] = db.socials.splice(index, 1);
+    saveFooterDb(db);
+    pushActivity({ type: 'delete-footer-social', entity: 'footer-social', entityId: removed.id, message: `Social media ${removed.name} dihapus dari footer.` });
+    return json(res, 200, { ok: true, socials: db.socials, message: 'Social media footer dihapus permanen.' });
+  }
+  if (pathname === '/api/search-history' && req.method === 'GET') {
+    const page = String(urlObj.searchParams.get('page') || '').trim().slice(0, 32);
+    const db = loadSearchHistoryDb();
+    const history = page ? db.history.filter((entry) => entry.page === page) : db.history;
+    return json(res, 200, { history, meta: db.meta });
+  }
+  if (pathname === '/api/search-history' && req.method === 'POST') {
+    if (limited(req, res, 60)) return;
+    const body = await readJsonBody(req, res); if (!body) return;
+    const queryText = String(body.query || '').trim().slice(0, 80);
+    const page = String(body.page || 'home').trim().slice(0, 32) || 'home';
+    if (!queryText) return badRequest(res, 'Query pencarian wajib diisi.');
+    const hitsValue = Number(body.hits);
+    const hits = Number.isFinite(hitsValue) ? Math.max(0, Math.floor(hitsValue)) : 0;
+    const db = loadSearchHistoryDb();
+    const timestamp = nowIso();
+    const existing = db.history.find((entry) => entry.page === page && String(entry.query || '').toLowerCase() === queryText.toLowerCase());
+    if (existing) {
+      existing.query = queryText;
+      existing.hits = hits;
+      existing.updatedAt = timestamp;
+    } else {
+      db.history.unshift({
+        id: crypto.randomUUID(),
+        query: queryText,
+        page,
+        hits,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      });
+    }
+    saveSearchHistoryDb(db);
+    const history = db.history.filter((entry) => entry.page === page);
+    return json(res, existing ? 200 : 201, { history, message: 'Histori pencarian disimpan permanen.' });
+  }
+  if (pathname.match(/^\/api\/search-history\/[^/]+$/) && req.method === 'DELETE') {
+    if (limited(req, res, 60)) return;
+    const id = pathname.split('/')[3];
+    const db = loadSearchHistoryDb();
+    const index = db.history.findIndex((entry) => entry.id === id);
+    if (index < 0) return json(res, 404, { error: 'Histori pencarian tidak ditemukan.' });
+    db.history.splice(index, 1);
+    saveSearchHistoryDb(db);
+    return json(res, 200, { ok: true, history: db.history, message: 'Riwayat pencarian dihapus permanen.' });
+  }
+  if (pathname === '/api/search-history' && req.method === 'DELETE') {
+    if (limited(req, res, 60)) return;
+    const page = String(urlObj.searchParams.get('page') || '').trim().slice(0, 32);
+    const db = loadSearchHistoryDb();
+    db.history = page ? db.history.filter((entry) => entry.page !== page) : [];
+    saveSearchHistoryDb(db);
+    return json(res, 200, { ok: true, history: db.history, message: 'Semua histori pencarian dihapus permanen.' });
+  }
+  if (pathname === '/api/auth/check' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
+    return json(res, 200, { ok: true, role: 'developer' });
+  }
+  if (pathname === '/api/items' && req.method === 'GET') {
+    const db = loadItemsDb();
+    const category = String(urlObj.searchParams.get('category') || '').trim();
+    const q = String(urlObj.searchParams.get('q') || '').trim().toLowerCase();
+    const missing = String(urlObj.searchParams.get('missing') || '') === '1';
+    let items = db.items.slice();
+    if (category) items = items.filter((item) => item.category === category);
+    if (q) {
+      items = items.filter((item) => [
+        item.name,
+        item.group,
+        item.searchQuery,
+        item.description || '',
+        item.websiteUrl || '',
+        item.domain || ''
+      ].join(' ').toLowerCase().includes(q));
+    }
+    if (missing) items = items.filter((item) => !item.videoId);
+    return json(res, 200, { items });
+  }
+  if (pathname === '/api/items' && req.method === 'POST') {
+    if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+    const body = await readJsonBody(req, res); if (!body) return;
+    const category = String(body.category || '').trim().toLowerCase();
+    const allowed = customizableItemCategories();
+    if (!allowed.has(category)) return badRequest(res, 'Kategori untuk kartu baru tidak valid.');
+    const name = String(body.name || '').trim();
+    if (!name) return badRequest(res, 'Judul kartu wajib diisi.');
+    const searchQuery = String(body.searchQuery || name).trim() || name;
+    const group = String(body.group || `${category.toUpperCase()} custom card`).trim() || `${category.toUpperCase()} custom card`;
+    const description = String(body.description || '').trim();
+    const websiteInfo = normalizeExternalUrl(body.websiteUrl || '');
+    if (!websiteInfo.valid) return badRequest(res, websiteInfo.reason);
+    const downloadInfo = normalizeExternalUrl(body.downloadUrl || '');
+    if (!downloadInfo.valid) return badRequest(res, downloadInfo.reason.replace('website', 'download'));
+    let youtube = { valid: true, watchUrl: '', videoId: '', embedUrl: '' };
+    const youtubeRaw = String(body.youtubeUrl || '').trim();
+    if (youtubeRaw) {
+      youtube = normalizeYoutubeUrl(youtubeRaw);
+      if (!youtube.valid) return badRequest(res, youtube.reason);
+    }
+    const db = loadItemsDb();
+    const slugBase = slugify(name) || crypto.randomUUID().slice(0, 8);
+    let id = `${category}-custom-${slugBase}`;
+    let suffix = 2;
+    while (db.items.some((item) => item.id === id)) id = `${category}-custom-${slugBase}-${suffix++}`;
+    const createdAt = nowIso();
+    const item = {
+      id,
+      category,
+      group,
+      name,
+      searchQuery,
+      websiteUrl: websiteInfo.value,
+      domain: websiteInfo.domain,
+      description,
+      downloadUrl: downloadInfo.value,
+      youtubeUrl: youtube.watchUrl,
+      videoId: youtube.videoId,
+      embedUrl: youtube.embedUrl,
+      updatedAt: createdAt,
+      createdAt,
+      isCustom: true
+    };
+    db.items.push(item);
+    saveItemsDb(rebuildItemStats(db));
+    pushActivity({ type: 'create-item', entity: 'item', entityId: item.id, message: `Kartu ${item.name} dibuat untuk kategori ${item.category}.` });
+    return json(res, 201, { item, message: 'Kartu baru berhasil ditambahkan.' });
+  }
+  if (pathname.match(/^\/api\/items\/[^/]+$/) && req.method === 'PATCH') {
+    if (limited(req, res, 60) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[3];
+    const body = await readJsonBody(req, res); if (!body) return;
+    const db = loadItemsDb();
+    const item = db.items.find((entry) => entry.id === id);
+    if (!item) return json(res, 404, { error: 'Item tidak ditemukan.' });
+    if ('name' in body) {
+      const nextName = String(body.name || '').trim();
+      if (!nextName) return badRequest(res, 'Judul kartu tidak boleh kosong.');
+      item.name = nextName;
+    }
+    if ('group' in body) item.group = String(body.group || '').trim() || item.group;
+    if ('searchQuery' in body) item.searchQuery = String(body.searchQuery || item.name).trim() || item.name;
+    if ('description' in body) item.description = String(body.description || '').trim();
+    if ('websiteUrl' in body) {
+      const websiteInfo = normalizeExternalUrl(body.websiteUrl || '');
+      if (!websiteInfo.valid) return badRequest(res, websiteInfo.reason);
+      item.websiteUrl = websiteInfo.value;
+      item.domain = websiteInfo.domain;
+    }
+    if ('downloadUrl' in body) {
+      const downloadInfo = normalizeExternalUrl(body.downloadUrl || '');
+      if (!downloadInfo.valid) return badRequest(res, downloadInfo.reason.replace('website', 'download'));
+      item.downloadUrl = downloadInfo.value;
+    }
+    item.updatedAt = nowIso();
+    saveItemsDb(rebuildItemStats(db));
+    pushActivity({ type: 'update-item', entity: 'item', entityId: item.id, message: `Info kartu ${item.name} diperbarui.` });
+    return json(res, 200, { item, message: 'Info kartu berhasil diperbarui.' });
+  }
+  if (pathname.match(/^\/api\/items\/[^/]+$/) && req.method === 'DELETE') {
+    if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[3];
+    const db = loadItemsDb();
+    const index = db.items.findIndex((entry) => entry.id === id);
+    if (index < 0) return json(res, 404, { error: 'Item tidak ditemukan.' });
+    const item = db.items[index];
+    if (item.isOpeningReel) return badRequest(res, 'Opening reel tidak bisa dihapus sebagai kartu. Hapus videonya saja bila perlu.');
+    db.items.splice(index, 1);
+    saveItemsDb(rebuildItemStats(db));
+    pushActivity({ type: 'delete-item', entity: 'item', entityId: item.id, message: `Kartu video ${item.name} dihapus permanen.` });
+    return json(res, 200, { ok: true, message: 'Kartu video dihapus permanen dari website.' });
+  }
+  if (pathname.match(/^\/api\/items\/[^/]+\/video$/)) {
+    const id = pathname.split('/')[3];
+    if (req.method === 'DELETE') {
+      if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+      const db = loadItemsDb();
+      const item = db.items.find((entry) => entry.id === id);
+      if (!item) return json(res, 404, { error: 'Item tidak ditemukan.' });
+      item.youtubeUrl = '';
+      item.videoId = '';
+      item.embedUrl = '';
+      item.updatedAt = nowIso();
+      saveItemsDb(rebuildItemStats(db));
+      pushActivity({ type: 'delete-video', entity: 'item', entityId: item.id, message: `Video pada item ${item.name} dihapus.` });
+      return json(res, 200, { item, message: 'Video dihapus permanen dari kartu.' });
+    }
+    if (req.method !== 'PATCH') return methodNotAllowed(res);
+    if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+    const body = await readJsonBody(req, res); if (!body) return;
+    const parsed = normalizeYoutubeUrl(body.youtubeUrl);
+    if (!parsed.valid) return badRequest(res, parsed.reason);
+    const db = loadItemsDb();
+    const item = db.items.find((entry) => entry.id === id);
+    if (!item) return json(res, 404, { error: 'Item tidak ditemukan.' });
+    item.youtubeUrl = parsed.watchUrl;
+    item.videoId = parsed.videoId;
+    item.embedUrl = parsed.embedUrl;
+    item.updatedAt = nowIso();
+    saveItemsDb(rebuildItemStats(db));
+    pushActivity({ type: 'update-video', entity: 'item', entityId: item.id, message: `Video item ${item.name} diperbarui.` });
+    return json(res, 200, { item, message: 'Video tersimpan permanen ke database proyek.' });
+  }
+  if (pathname === '/api/bulk' && req.method === 'POST') {
+    if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+    const body = await readJsonBody(req, res); if (!body) return;
+    const rows = Array.isArray(body.rows) ? body.rows : null;
+    if (!rows) return badRequest(res, 'rows harus berupa array.');
+    const db = loadItemsDb();
+    const errors = []; let updated = 0;
+    for (const row of rows.slice(0, 500)) {
+      const itemName = String(row.itemName || '').trim().toLowerCase();
+      const youtubeUrl = String(row.youtubeUrl || '').trim();
+      if (!itemName || !youtubeUrl) { errors.push({ row, error: 'Nama item atau URL kosong.' }); continue; }
+      const item = db.items.find((entry) => entry.name.toLowerCase() === itemName);
+      if (!item) { errors.push({ row, error: 'Item tidak ditemukan.' }); continue; }
+      const parsed = normalizeYoutubeUrl(youtubeUrl);
+      if (!parsed.valid) { errors.push({ row, error: parsed.reason }); continue; }
+      item.youtubeUrl = parsed.watchUrl;
+      item.videoId = parsed.videoId;
+      item.embedUrl = parsed.embedUrl;
+      item.updatedAt = nowIso();
+      updated += 1;
+    }
+    saveItemsDb(rebuildItemStats(db));
+    pushActivity({ type: 'bulk-update', entity: 'item', entityId: 'bulk', message: `${updated} video item diperbarui secara massal.` });
+    return json(res, 200, { updated, errors });
+  }
+  if (pathname === '/api/posts/public' && req.method === 'GET') {
+    const db = loadPostsDb();
+    const limit = Math.min(Math.max(parseInt(urlObj.searchParams.get('limit') || '6', 10), 1), 24);
+    const posts = db.posts
+      .filter((post) => !post.deletedAt && post.status === 'published')
+      .sort((a, b) => new Date(b.publishedAt || b.updatedAt || 0) - new Date(a.publishedAt || a.updatedAt || 0))
+      .slice(0, limit);
+    return json(res, 200, { posts, summary: summarizePosts(db.posts) });
+  }
+  if (pathname === '/api/posts/activity' && req.method === 'GET') {
+    const db = loadActivityDb();
+    return json(res, 200, { events: db.events.slice(0, 60) });
+  }
+  if (pathname === '/api/posts' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
+    const db = loadPostsDb();
+    const page = Math.max(parseInt(urlObj.searchParams.get('page') || '1', 10), 1);
+    const limit = Math.min(Math.max(parseInt(urlObj.searchParams.get('limit') || '12', 10), 1), 50);
+    const filtered = filterSortPosts(db.posts, urlObj.searchParams);
+    const offset = (page - 1) * limit;
+    return json(res, 200, {
+      posts: filtered.slice(offset, offset + limit),
+      page,
+      limit,
+      total: filtered.length,
+      totalPages: Math.max(1, Math.ceil(filtered.length / limit)),
+      summary: summarizePosts(db.posts)
+    });
+  }
+  if (pathname === '/api/posts/count' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
+    const filtered = filterSortPosts(loadPostsDb().posts, urlObj.searchParams);
+    return json(res, 200, { count: filtered.length });
+  }
+  if (pathname === '/api/posts/export' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
+    const filtered = filterSortPosts(loadPostsDb().posts, urlObj.searchParams);
+    return json(res, 200, { exportedAt: nowIso(), total: filtered.length, posts: filtered });
+  }
+  if (pathname === '/api/posts' && req.method === 'POST') {
+    if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+    const body = await readJsonBody(req, res); if (!body) return;
+    const title = String(body.title || '').trim();
+    const excerpt = String(body.excerpt || '').trim();
+    const content = String(body.content || '').trim();
+    const category = String(body.category || '').trim().toLowerCase();
+    const author = String(body.author || 'Developer').trim();
+    if (!title || !excerpt || !content || !category) return badRequest(res, 'title, excerpt, content, dan category wajib diisi.');
+    const allowedCategories = new Set(['tanaman', 'hewan', 'teknologi', 'portfolio', 'umum']);
+    if (!allowedCategories.has(category)) return badRequest(res, 'Kategori tidak valid.');
+    const db = loadPostsDb();
+    const slugBase = slugify(body.slug || title) || crypto.randomUUID().slice(0, 8);
+    let slug = slugBase; let suffix = 2;
+    while (db.posts.some((post) => post.slug === slug)) slug = `${slugBase}-${suffix++}`;
+    const createdAt = nowIso();
+    const status = ['draft', 'review', 'published', 'archived'].includes(String(body.status || 'draft')) ? String(body.status) : 'draft';
+    const post = {
+      id: crypto.randomUUID(), slug, title, excerpt, content, category, status,
+      featured: Boolean(body.featured), cover: String(body.cover || '').trim(), author,
+      tags: Array.isArray(body.tags) ? body.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 12) : String(body.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12),
+      createdAt, updatedAt: createdAt, publishedAt: status === 'published' ? createdAt : null,
+      archivedAt: status === 'archived' ? createdAt : null, deletedAt: null, createdBy: 'developer'
+    };
+    db.posts.unshift(post);
+    savePostsDb(db);
+    pushActivity({ type: 'create-post', entity: 'post', entityId: post.id, message: `Postingan ${post.title} dibuat.` });
+    return json(res, 201, { post, message: 'Postingan berhasil dibuat.' });
+  }
+  if (pathname.match(/^\/api\/posts\/[^/]+$/) && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
+    const id = pathname.split('/')[3];
+    const post = loadPostsDb().posts.find((entry) => entry.id === id);
+    if (!post) return json(res, 404, { error: 'Postingan tidak ditemukan.' });
+    return json(res, 200, { post });
+  }
+  if (pathname.match(/^\/api\/posts\/[^/]+$/) && req.method === 'PATCH') {
+    if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[3];
+    const body = await readJsonBody(req, res); if (!body) return;
+    const db = loadPostsDb();
+    const post = db.posts.find((entry) => entry.id === id);
+    if (!post) return json(res, 404, { error: 'Postingan tidak ditemukan.' });
+    for (const key of ['title', 'excerpt', 'content', 'category', 'author', 'cover']) {
+      if (key in body) post[key] = String(body[key] || '').trim();
+    }
+    if ('featured' in body) post.featured = Boolean(body.featured);
+    if ('tags' in body) {
+      post.tags = Array.isArray(body.tags) ? body.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 12) : String(body.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 12);
+    }
+    if ('slug' in body) {
+      const candidate = slugify(body.slug || post.title);
+      if (candidate && !db.posts.some((entry) => entry.id !== post.id && entry.slug === candidate)) post.slug = candidate;
+    }
+    post.updatedAt = nowIso();
+    savePostsDb(db);
+    pushActivity({ type: 'update-post', entity: 'post', entityId: post.id, message: `Postingan ${post.title} diperbarui.` });
+    return json(res, 200, { post, message: 'Postingan diperbarui.' });
+  }
+  if (pathname.match(/^\/api\/posts\/[^/]+\/status$/) && req.method === 'PATCH') {
+    if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[3];
+    const body = await readJsonBody(req, res); if (!body) return;
+    const nextStatus = String(body.status || '').trim();
+    const allowed = new Set(['draft', 'review', 'published', 'archived']);
+    if (!allowed.has(nextStatus)) return badRequest(res, 'Status tidak valid.');
+    const db = loadPostsDb();
+    const post = db.posts.find((entry) => entry.id === id);
+    if (!post) return json(res, 404, { error: 'Postingan tidak ditemukan.' });
+    post.status = nextStatus;
+    post.updatedAt = nowIso();
+    if (nextStatus === 'published' && !post.publishedAt) post.publishedAt = nowIso();
+    if (nextStatus === 'archived') post.archivedAt = nowIso();
+    if (nextStatus !== 'archived') post.archivedAt = null;
+    savePostsDb(db);
+    pushActivity({ type: 'status-post', entity: 'post', entityId: post.id, message: `Status ${post.title} diubah menjadi ${nextStatus}.` });
+    return json(res, 200, { post, message: 'Status postingan diperbarui.' });
+  }
+  if (pathname.match(/^\/api\/posts\/[^/]+$/) && req.method === 'DELETE') {
+    if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[3];
+    const db = loadPostsDb();
+    const post = db.posts.find((entry) => entry.id === id);
+    if (!post) return json(res, 404, { error: 'Postingan tidak ditemukan.' });
+    post.deletedAt = nowIso();
+    post.updatedAt = post.deletedAt;
+    savePostsDb(db);
+    pushActivity({ type: 'soft-delete-post', entity: 'post', entityId: post.id, message: `Postingan ${post.title} di-soft delete.` });
+    return json(res, 200, { post, message: 'Postingan di-soft delete.' });
+  }
+  if (pathname.match(/^\/api\/posts\/[^/]+\/restore$/) && req.method === 'POST') {
+    if (limited(req, res, 40) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[3];
+    const body = await readJsonBody(req, res); if (body === null) return;
+    const db = loadPostsDb();
+    const post = db.posts.find((entry) => entry.id === id);
+    if (!post) return json(res, 404, { error: 'Postingan tidak ditemukan.' });
+    post.deletedAt = null;
+    post.updatedAt = nowIso();
+    savePostsDb(db);
+    pushActivity({ type: 'restore-post', entity: 'post', entityId: post.id, message: `Postingan ${post.title} dipulihkan.` });
+    return json(res, 200, { post, message: 'Postingan dipulihkan.' });
+  }
+
+  if (pathname === '/api/story-comments' && req.method === 'GET') {
+    const postId = String(urlObj.searchParams.get('postId') || '').trim();
+    if (!postId) return badRequest(res, 'postId wajib diisi.');
+    const isGlobalStory = postId === 'website-global';
+    let post = null;
+    if (!isGlobalStory) {
+      const postsDb = loadPostsDb();
+      post = postsDb.posts.find((entry) => entry.id === postId && !entry.deletedAt);
+      if (!post) return json(res, 404, { error: 'Postingan tidak ditemukan.' });
+    }
+    const db = loadStoryCommentsDb();
+    const filtered = db.comments.filter((comment) => comment.postId === postId && comment.status !== 'hidden' && !comment.hiddenAt);
+    return json(res, 200, { comments: buildCommentTree(filtered), total: filtered.length, postId, label: isGlobalStory ? 'Website keseluruhan' : post.title });
+  }
+  if (pathname === '/api/story-comments' && req.method === 'POST') {
+    if (limited(req, res, 60)) return;
+    const body = await readJsonBody(req, res); if (!body) return;
+    const payload = sanitizeCommentBody(body);
+    if (!payload.postId) return badRequest(res, 'postId wajib diisi.');
+    if (!payload.name) return badRequest(res, 'Nama wajib diisi.');
+    if (!payload.text && !payload.gifUrl && !payload.stickerUrl && !payload.imageDataUrl) {
+      return badRequest(res, 'Isi komentar, GIF, sticker, atau gambar wajib ada salah satu.');
+    }
+    if (payload.imageDataUrl && payload.imageDataUrl.length > 900000) return badRequest(res, 'Gambar terlalu besar.');
+    const isGlobalStory = payload.postId === 'website-global';
+    let post = null;
+    if (!isGlobalStory) {
+      const postsDb = loadPostsDb();
+      post = postsDb.posts.find((entry) => entry.id === payload.postId && !entry.deletedAt);
+      if (!post) return json(res, 404, { error: 'Postingan tidak ditemukan.' });
+    }
+    const db = loadStoryCommentsDb();
+    if (payload.parentId) {
+      const parent = db.comments.find((entry) => entry.id === payload.parentId && entry.postId === payload.postId && entry.status !== 'hidden' && !entry.hiddenAt);
+      if (!parent) return badRequest(res, 'Komentar induk tidak ditemukan.');
+      if (parent.parentId) return badRequest(res, 'Balasan hanya diperbolehkan satu tingkat.');
+    }
+    const createdAt = nowIso();
+    const comment = {
+      id: crypto.randomUUID(),
+      postId: payload.postId,
+      parentId: payload.parentId,
+      name: payload.name,
+      text: payload.text,
+      gifUrl: payload.gifUrl,
+      stickerUrl: payload.stickerUrl,
+      imageDataUrl: payload.imageDataUrl,
+      createdAt,
+      status: 'visible',
+      hiddenAt: null,
+      hiddenReason: '',
+      moderatedAt: payload.moderationEdited ? createdAt : null,
+      moderationLabels: Array.isArray(payload.moderationLabels) ? payload.moderationLabels : [],
+      moderationEdited: Boolean(payload.moderationEdited)
+    };
+    db.comments.push(comment);
+    saveStoryCommentsDb(db);
+    const targetLabel = isGlobalStory ? 'website keseluruhan' : post.title;
+    const moderationSuffix = comment.moderationEdited && comment.moderationLabels.length ? ` Komentar disunting otomatis (${comment.moderationLabels.join(', ')}).` : '';
+    pushActivity({ type: 'public-comment', entity: 'story-comment', entityId: comment.id, message: `Komentar publik baru pada ${targetLabel} oleh ${comment.name}.${moderationSuffix}` });
+    return json(res, 201, { comment, message: comment.moderationEdited ? 'Komentar tersimpan permanen. Kata yang mengganggu sudah disunting otomatis.' : 'Komentar tersimpan permanen.' });
+  }
+
+  if (pathname === '/api/admin/story-comments' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
+    const postId = String(urlObj.searchParams.get('postId') || '').trim();
+    const q = String(urlObj.searchParams.get('q') || '').trim().toLowerCase();
+    const db = loadStoryCommentsDb();
+    let comments = db.comments.slice();
+    if (postId) comments = comments.filter((comment) => comment.postId === postId);
+    if (q) comments = comments.filter((comment) => [comment.name, comment.text, comment.hiddenReason, ...(comment.moderationLabels || [])].join(' ').toLowerCase().includes(q));
+    comments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    return json(res, 200, { comments, total: comments.length });
+  }
+  if (pathname.match(/^\/api\/admin\/story-comments\/[^/]+$/) && req.method === 'PATCH') {
+    if (limited(req, res, 60) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[4];
+    const body = await readJsonBody(req, res); if (!body) return;
+    const action = String(body.action || '').trim().toLowerCase();
+    if (!['hide', 'show'].includes(action)) return badRequest(res, 'Aksi moderasi tidak valid.');
+    const db = loadStoryCommentsDb();
+    const comment = db.comments.find((entry) => entry.id === id);
+    if (!comment) return json(res, 404, { error: 'Komentar tidak ditemukan.' });
+    if (action === 'hide') {
+      comment.status = 'hidden';
+      comment.hiddenAt = nowIso();
+      comment.hiddenReason = String(body.reason || 'Disembunyikan dari Developer Edit.').trim().slice(0, 160) || 'Disembunyikan dari Developer Edit.';
+      pushActivity({ type: 'hide-comment', entity: 'story-comment', entityId: comment.id, message: `Komentar ${comment.name} disembunyikan dari tampilan publik.` });
+    } else {
+      comment.status = 'visible';
+      comment.hiddenAt = null;
+      comment.hiddenReason = '';
+      pushActivity({ type: 'show-comment', entity: 'story-comment', entityId: comment.id, message: `Komentar ${comment.name} ditampilkan kembali.` });
+    }
+    saveStoryCommentsDb(db);
+    return json(res, 200, { comment, message: action === 'hide' ? 'Komentar disembunyikan permanen dari publik.' : 'Komentar ditampilkan kembali.' });
+  }
+  if (pathname.match(/^\/api\/admin\/story-comments\/[^/]+$/) && req.method === 'DELETE') {
+    if (limited(req, res, 60) || !requireAdmin(req, res)) return;
+    const id = pathname.split('/')[4];
+    const db = loadStoryCommentsDb();
+    const target = db.comments.find((entry) => entry.id === id);
+    if (!target) return json(res, 404, { error: 'Komentar tidak ditemukan.' });
+    db.comments = db.comments.filter((entry) => entry.id !== id && entry.parentId !== id);
+    saveStoryCommentsDb(db);
+    pushActivity({ type: 'delete-comment', entity: 'story-comment', entityId: target.id, message: `Komentar ${target.name} dihapus permanen dari database.` });
+    return json(res, 200, { ok: true, message: 'Komentar dihapus permanen.' });
+  }
+
+  if (pathname === '/api/analytics/event' && req.method === 'POST') {
+    if (limited(req, res, 240)) return;
+    const body = await readJsonBody(req, res); if (body === null) return;
+    const events = Array.isArray(body) ? body : [body];
+    const db = loadAnalyticsDb();
+    for (const raw of events.slice(0, 20)) {
+      const event = normalizeAnalyticsEvent(raw);
+      if (!event) continue;
+      db.events.push(event);
+    }
+    db.events = db.events.slice(-6000);
+    db.meta = { generatedAt: nowIso(), count: db.events.length };
+    saveAnalyticsDb(db);
+    return json(res, 201, { ok: true, stored: db.events.length });
+  }
+  if (pathname === '/api/analytics' && req.method === 'GET') {
+    return json(res, 200, summarizeAnalytics());
+  }
+  if (pathname === '/api/analytics/export' && req.method === 'GET') {
+    const format = String(urlObj.searchParams.get('format') || 'json').trim().toLowerCase();
+    const summary = summarizeAnalytics();
+    if (format === 'csv') {
+      return send(res, 200, analyticsSummaryToCsv(summary), {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="pulseboard-analytics.csv"'
+      });
+    }
+    if (format === 'html') {
+      return send(res, 200, analyticsSummaryToHtml(summary), {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="pulseboard-analytics-report.html"'
+      });
+    }
+    return send(res, 200, JSON.stringify(summary, null, 2), {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="pulseboard-analytics.json"'
+    });
+  }
+
+  /* ─── Chat SSE ──────────────────────────── */
+  if (pathname === '/api/chat/stream' && req.method === 'GET') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'X-Accel-Buffering': 'no'
+    });
+    res.write(`: connected\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'history', messages: chatMessages.slice(-50) })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'online', count: chatClients.size + 1 })}\n\n`);
+    chatClients.add(res);
+    chatBroadcast({ type: 'online', count: chatClients.size });
+    req.on('close', () => {
+      chatClients.delete(res);
+      chatBroadcast({ type: 'online', count: chatClients.size });
+    });
+    return;
+  }
+
+  if (pathname === '/api/chat/message' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => { body += c; if (body.length > 1000) req.destroy(); });
+    req.on('end', () => {
+      try {
+        const { name, text } = JSON.parse(body);
+        const safeName = String(name || 'Anonim').slice(0, 24).replace(/[<>]/g, '');
+        const safeText = String(text || '').trim().slice(0, 200).replace(/[<>]/g, '');
+        if (!safeText) return json(res, 400, { error: 'empty message' });
+        const msg = { id: crypto.randomUUID(), name: safeName, text: safeText, ts: Date.now() };
+        chatMessages.push(msg);
+        if (chatMessages.length > CHAT_MAX) chatMessages.shift();
+        chatBroadcast({ type: 'message', msg });
+        return json(res, 200, { ok: true });
+      } catch {
+        return json(res, 400, { error: 'invalid json' });
+      }
+    });
+    return;
+  }
+
+  return notFound(res);
+}
+
+const server = http.createServer(async (req, res) => {
+  try {
+    if (!req.url) return notFound(res);
+    const urlObj = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
+    if (req.method === 'OPTIONS') return send(res, 204, '', {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS'
+    });
+    if (urlObj.pathname.startsWith('/api/')) return await handleApi(req, res, urlObj);
+    if (limited(req, res, 800)) return;
+    const filePath = tryStatic(urlObj.pathname);
+    if (!filePath) return notFound(res);
+    return serveStatic(res, filePath);
+  } catch (error) {
+    console.error(error);
+    return json(res, 500, { error: 'Server error internal.', detail: String(error.message || error) });
+  }
+});
+
+server.listen(PORT, HOST, () => {
+  console.log(`PulseBoard zero-dependency server ready on http://localhost:${PORT}`);
+});

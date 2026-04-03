@@ -1,0 +1,188 @@
+{
+  "meta": {
+    "name": "PulseBoard Posts",
+    "createdAt": "2026-03-30T00:00:00.000Z",
+    "description": "Post studio for PulseBoard dashboard CRUD."
+  },
+  "posts": [
+    {
+      "id": "post-azka-garden-lane",
+      "slug": "azka-garden-lane",
+      "title": "Azka Garden Lane",
+      "excerpt": "Azka Garden ditambahkan sebagai lane sejajar di PulseBoard Fusion.",
+      "content": "Azka Garden sekarang mendapat halaman showcase khusus dan akses langsung dari portal.",
+      "category": "garden",
+      "status": "published",
+      "featured": false,
+      "cover": "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1200&q=80",
+      "author": "Developer",
+      "tags": [
+        "azka garden",
+        "garden"
+      ],
+      "createdAt": "2026-03-31T01:20:00.000Z",
+      "updatedAt": "2026-03-31T01:20:00.000Z",
+      "publishedAt": "2026-03-31T01:20:00.000Z",
+      "archivedAt": null,
+      "deletedAt": null,
+      "createdBy": "seed"
+    },
+    {
+      "id": "post-market-lane-launch",
+      "slug": "market-lane-launch",
+      "title": "Market Lane Launch",
+      "excerpt": "Market Lane menata platform e-commerce Indonesia setara dengan Green Atlas dan Wild Echo.",
+      "content": "E-commerce dan marketplace kini hadir sebagai lane katalog baru.",
+      "category": "commerce",
+      "status": "published",
+      "featured": false,
+      "cover": "https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80",
+      "author": "Developer",
+      "tags": [
+        "commerce",
+        "marketplace"
+      ],
+      "createdAt": "2026-03-31T01:10:00.000Z",
+      "updatedAt": "2026-03-31T01:10:00.000Z",
+      "publishedAt": "2026-03-31T01:10:00.000Z",
+      "archivedAt": null,
+      "deletedAt": null,
+      "createdBy": "seed"
+    },
+    {
+      "id": "post-news-desk-launch",
+      "slug": "news-desk-launch",
+      "title": "News Desk Launch",
+      "excerpt": "News Desk kini hadir sebagai lane baru berisi kanal berita Indonesia A–Z.",
+      "content": "News Desk menata website resmi dan kanal sosial media berita dalam katalog seragam.",
+      "category": "news",
+      "status": "published",
+      "featured": false,
+      "cover": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=80",
+      "author": "Developer",
+      "tags": [
+        "news desk",
+        "media"
+      ],
+      "createdAt": "2026-03-31T01:00:00.000Z",
+      "updatedAt": "2026-03-31T01:00:00.000Z",
+      "publishedAt": "2026-03-31T01:00:00.000Z",
+      "archivedAt": null,
+      "deletedAt": null,
+      "createdBy": "seed"
+    },
+    {
+      "id": "post-world-atlas-search",
+      "slug": "world-atlas-search",
+      "title": "World Atlas Search Ready",
+      "excerpt": "Pencarian negara sekarang lebih cepat dengan fokus marker aktif dan panel info yang lebih lengkap.",
+      "content": "World Atlas menerima input nama negara, ibu kota, atau kode dan langsung memusatkan kamera ke negara yang dipilih.",
+      "category": "portfolio",
+      "status": "published",
+      "featured": false,
+      "cover": "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&w=1200&q=80",
+      "author": "Developer",
+      "tags": [
+        "world atlas",
+        "search",
+        "globe"
+      ],
+      "createdAt": "2026-03-30T00:50:00.000Z",
+      "updatedAt": "2026-03-30T00:50:00.000Z",
+      "publishedAt": "2026-03-30T00:50:00.000Z",
+      "archivedAt": null,
+      "deletedAt": null,
+      "createdBy": "seed"
+    },
+    {
+      "id": "post-farm-world-update",
+      "slug": "farm-world-update",
+      "title": "Farm World Layout Update",
+      "excerpt": "Jalur utama Farm World kini lebih bersih, pohon tidak menutup jalan, dan bed tanaman dibuat lebih berbentuk.",
+      "content": "Update ini merapikan rumah, orchard, dan area bed tanaman agar world terbaca lebih baik saat dijelajahi.",
+      "category": "umum",
+      "status": "published",
+      "featured": false,
+      "cover": "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80",
+      "author": "Developer",
+      "tags": [
+        "farm world",
+        "layout",
+        "pulseboard"
+      ],
+      "createdAt": "2026-03-30T00:40:00.000Z",
+      "updatedAt": "2026-03-30T00:40:00.000Z",
+      "publishedAt": "2026-03-30T00:40:00.000Z",
+      "archivedAt": null,
+      "deletedAt": null,
+      "createdBy": "seed"
+    },
+    {
+      "id": "post-wild-echo-rollout",
+      "slug": "wild-echo-rollout",
+      "title": "Wild Echo Rollout",
+      "excerpt": "Wild Echo kini punya kartu hewan yang lebih presisi dan jalur embed video yang lebih stabil.",
+      "content": "Perombakan Wild Echo menekankan akurasi topik, kualitas embed, dan ritme visual yang lebih kuat untuk katalog hewan.",
+      "category": "hewan",
+      "status": "published",
+      "featured": false,
+      "cover": "https://images.unsplash.com/photo-1474511320723-9a56873867b5?auto=format&fit=crop&w=1200&q=80",
+      "author": "Developer",
+      "tags": [
+        "wild echo",
+        "hewan"
+      ],
+      "createdAt": "2026-03-30T00:10:00.000Z",
+      "updatedAt": "2026-03-30T00:10:00.000Z",
+      "publishedAt": "2026-03-30T00:30:00.000Z",
+      "archivedAt": null,
+      "deletedAt": null,
+      "createdBy": "seed"
+    },
+    {
+      "id": "post-tech-forge-stack",
+      "slug": "tech-forge-stack",
+      "title": "Tech Forge Stack Audit",
+      "excerpt": "Audit awal Tech Forge merapikan bahasa, runtime, engine, dan toolchain ke dalam satu peta kemampuan.",
+      "content": "Audit stack membantu menyatukan Python, Node.js, GCC, Unity, Unreal, dan toolchain Android agar tampil sebagai capability map.",
+      "category": "teknologi",
+      "status": "published",
+      "featured": false,
+      "cover": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+      "author": "Developer",
+      "tags": [
+        "tech forge",
+        "teknologi"
+      ],
+      "createdAt": "2026-03-30T00:20:00.000Z",
+      "updatedAt": "2026-03-30T00:20:00.000Z",
+      "publishedAt": "2026-03-30T00:30:00.000Z",
+      "archivedAt": null,
+      "deletedAt": null,
+      "createdBy": "seed"
+    },
+    {
+      "id": "post-green-atlas-kickoff",
+      "slug": "green-atlas-kickoff",
+      "title": "Green Atlas Kickoff",
+      "excerpt": "Pembukaan lini Green Atlas dengan fokus tanaman, katalog video, dan arah editorial baru.",
+      "content": "Green Atlas menjadi pintu masuk untuk atlas tanaman, media YouTube, dan struktur katalog yang lebih rapi untuk publik.",
+      "category": "tanaman",
+      "status": "published",
+      "featured": true,
+      "cover": "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1200&q=80",
+      "author": "Developer",
+      "tags": [
+        "green atlas",
+        "tanaman",
+        "pulseboard"
+      ],
+      "createdAt": "2026-03-30T00:00:00.000Z",
+      "updatedAt": "2026-03-30T00:00:00.000Z",
+      "publishedAt": "2026-03-30T00:00:00.000Z",
+      "archivedAt": null,
+      "deletedAt": null,
+      "createdBy": "seed"
+    }
+  ]
+}
